@@ -57,6 +57,14 @@ try {
         exit;
     }
 
+    // Prompt Evolution Engine (GEPA / DSPy - Hermes Pattern #5)
+    if ($action === 'optimize_prompt') {
+        $rawPrompt = $_POST['prompt'] ?? $_GET['prompt'] ?? '';
+        $res = $ruleOptimizer->optimizePrompt($rawPrompt);
+        echo json_encode($res);
+        exit;
+    }
+
     // Apply rules to ALL editors
     if ($action === 'apply_all_rules') {
         $res = $editorDetector->applyEditorRules('all');
