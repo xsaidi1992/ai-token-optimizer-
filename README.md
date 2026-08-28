@@ -1,7 +1,7 @@
 <div align="center">
 
 # ⚡ AI Token Optimizer ⚡
-### Commercial-Grade Universal Token Optimization & Analytics Suite for AI Coding Agents
+### Universal Token Optimization & Analytics Suite for AI Coding Agents
 **Dedicated for Linux Environments • 11 Supported IDEs & CLI Agents • Guide 2026 Ready**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-emerald.svg)](LICENSE)
