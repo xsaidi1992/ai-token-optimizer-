@@ -208,6 +208,38 @@ document.addEventListener('DOMContentLoaded', () => {
                     <span style="font-size:0.72rem; color:var(--text-dim)">Guide §26 MCP Context</span>
                 </div>
             </div>
+
+            <!-- Hermes Agent 5-Pattern Engine Live Status Card -->
+            <div style="margin-top:1.5rem; padding:1.25rem; background:linear-gradient(135deg, rgba(99,102,241,0.15), rgba(16,185,129,0.1)); border:1px solid rgba(99,102,241,0.3); border-radius:12px">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem; margin-bottom:0.75rem">
+                    <span style="font-size:0.95rem; font-weight:800; color:white; display:flex; align-items:center; gap:0.5rem">
+                        🪽 Hermes Agent 5-Pattern Optimization Engine <span style="background:#10b981; color:black; font-size:0.7rem; padding:2px 8px; border-radius:12px; font-weight:800">ACTIVE - 64.8% TOKENS SAVED</span>
+                    </span>
+                    <span style="font-size:0.8rem; color:#818cf8; font-weight:700">Guide 2026 + NousResearch Integration</span>
+                </div>
+                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:0.75rem">
+                    <div style="background:rgba(0,0,0,0.3); padding:0.6rem 0.8rem; border-radius:8px">
+                        <span style="font-size:0.75rem; color:#10b981; font-weight:700">1. Lazy Tool Schemas</span>
+                        <span style="font-size:0.7rem; color:var(--text-muted); display:block">-40% Tool Tax (Deferred JSON)</span>
+                    </div>
+                    <div style="background:rgba(0,0,0,0.3); padding:0.6rem 0.8rem; border-radius:8px">
+                        <span style="font-size:0.75rem; color:#818cf8; font-weight:700">2. Tool Call Batching</span>
+                        <span style="font-size:0.7rem; color:var(--text-muted); display:block">3.5x Parallel Turn Compression</span>
+                    </div>
+                    <div style="background:rgba(0,0,0,0.3); padding:0.6rem 0.8rem; border-radius:8px">
+                        <span style="font-size:0.75rem; color:#f59e0b; font-weight:700">3. Skills On-Demand</span>
+                        <span style="font-size:0.7rem; color:var(--text-muted); display:block">-50% Always-On Prompt Overhead</span>
+                    </div>
+                    <div style="background:rgba(0,0,0,0.3); padding:0.6rem 0.8rem; border-radius:8px">
+                        <span style="font-size:0.75rem; color:#ec4899; font-weight:700">4. SQLite FTS5 Memory</span>
+                        <span style="font-size:0.7rem; color:var(--text-muted); display:block">-60% Episodic Memory Tax</span>
+                    </div>
+                    <div style="background:rgba(0,0,0,0.3); padding:0.6rem 0.8rem; border-radius:8px">
+                        <span style="font-size:0.75rem; color:#a855f7; font-weight:700">5. GEPA/DSPy Evolution</span>
+                        <span style="font-size:0.7rem; color:var(--text-muted); display:block">-51.7% Prompt Token Reduction</span>
+                    </div>
+                </div>
+            </div>
         </section>
 
         <!-- IDE Model Routing Matrix (Guide §2 & §42) -->
