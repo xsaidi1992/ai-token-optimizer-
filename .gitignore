@@ -1,0 +1,22 @@
+# Operating System & Temporary Files
+.DS_Store
+*.swp
+*~
+*.log
+*.tmp
+
+# PHP & Web Server
+vendor/
+composer.lock
+.env
+
+# Antigravity & AI Agent Artifacts
+.gemini/
+.agents/
+.cursor/
+.codeium/
+
+# Runtime Data Caches (Ignored to preserve user machine state)
+data/snapshots.json
+data/optimization_rules.json
+data/scanner_cache.json

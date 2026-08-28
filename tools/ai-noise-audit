@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+set -euo pipefail
+# AI Token Optimizer — Audit workspace noise (Guide 2026 §34)
+
+ROOT="${1:-.}"
+cd "$ROOT"
+
+OUTPUT_MODE="${2:-text}"
+
+echo "=== TRACKED FILES ==="
+git ls-files 2>/dev/null | wc -l || find . -type f | wc -l
+
+echo ""
+echo "=== LARGEST TRACKED FILES ==="
+git ls-files -z 2>/dev/null | xargs -0 -r du -h | sort -h | tail -n 30 || \
+  find . -type f -not -path './.git/*' -exec du -h {} + 2>/dev/null | sort -h | tail -n 30
+
+echo ""
+echo "=== NOISY DIRECTORIES ==="
+for d in node_modules vendor .venv dist build coverage .next .cache generated logs data __pycache__; do
+    if [ -e "$d" ]; then
+        du -sh "$d" 2>/dev/null || true
+    fi
+done
+
+echo ""
+echo "=== GIANT FILES (>1 MiB) ==="
+find . -type f -size +1M \
+  -not -path './.git/*' -not -path './node_modules/*' \
+  -not -path './.venv/*' -print 2>/dev/null | head -n 100
+
+echo ""
+echo "=== IGNORE FILE STATUS ==="
+for f in .cursorignore .cursorindexingignore .geminiignore .codeiumignore .clineignore .aiignore .gitignore; do
+    if [ -f "$f" ]; then
+        lines=$(wc -l < "$f")
+        echo "✅ $f ($lines lines)"
+    else
+        echo "❌ $f (missing)"
+    fi
+done

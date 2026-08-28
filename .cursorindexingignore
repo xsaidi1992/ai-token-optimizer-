@@ -1,0 +1,57 @@
+# Cursor Indexing Ignore (Guide 2026 §5.3)
+docs/archive/
+benchmarks/results/
+large-fixtures/
+package-lock.json
+pnpm-lock.yaml
+poetry.lock
+# --- AI TOKEN OPTIMIZATION (Guide 2026 §17) ---
+# Dependencies
+node_modules/
+vendor/
+.venv/
+venv/
+
+# Build / generated
+dist/
+build/
+out/
+target/
+.next/
+.nuxt/
+coverage/
+generated/
+artifacts/
+
+# Caches
+.cache/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+__pycache__/
+
+# Logs
+logs/
+*.log
+
+# Large/generated web files
+*.min.js
+*.min.css
+*.map
+
+# Large data
+data/raw/
+*.parquet
+*.sqlite
+*.db
+*.dump
+*.sql.gz
+*.zip
+*.tar
+*.tar.gz
+
+# Secrets
+.env
+.env.*
+secrets/
+# --- END AI TOKEN OPTIMIZATION ---

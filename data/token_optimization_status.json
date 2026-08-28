@@ -1,0 +1,25 @@
+{
+    "is_active": true,
+    "updated_at": "2026-08-28 02:59:52",
+    "rule_file_path": "\/home\/thinkpad\/.gemini\/antigravity\/rules\/token_optimization.md",
+    "rules": [
+        "context-pruning",
+        "system-prompt-compression",
+        "concise-diff-generation",
+        "history-window-trimming"
+    ],
+    "real_math": {
+        "scanned_files_count": 7,
+        "real_events_count": 433,
+        "real_prompt_tokens": 6585,
+        "real_completion_tokens": 58415,
+        "real_total_tokens": 65000,
+        "real_cost_usd": 0.018018,
+        "baseline_total_tokens": 141700,
+        "baseline_cost_usd": 0.038739,
+        "tokens_saved": 76700,
+        "savings_percent": 54.1,
+        "cost_saved_usd": 0.020721,
+        "compression_ratio": 2.18
+    }
+}

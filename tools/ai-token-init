@@ -1,0 +1,72 @@
+#!/usr/bin/env bash
+set -euo pipefail
+# AI Token Optimizer — Initialize ignore files for all AI editors (Guide 2026 §18)
+
+ROOT="${1:-.}"
+cd "$ROOT"
+
+IGNORE_BLOCK='
+# --- AI TOKEN OPTIMIZATION (Guide 2026 §17) ---
+node_modules/
+vendor/
+.venv/
+venv/
+dist/
+build/
+out/
+target/
+.next/
+.nuxt/
+coverage/
+generated/
+artifacts/
+.cache/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+__pycache__/
+tmp/
+logs/
+*.log
+*.map
+*.min.js
+*.min.css
+data/raw/
+*.parquet
+*.sqlite
+*.db
+*.dump
+*.sql.gz
+*.zip
+*.tar
+*.tar.gz
+.env
+.env.*
+secrets/
+# --- END AI TOKEN OPTIMIZATION ---
+'
+
+append_if_missing() {
+    local file="$1"
+    local marker="# --- AI TOKEN OPTIMIZATION"
+    if [ ! -f "$file" ]; then
+        printf "%s\n" "$IGNORE_BLOCK" > "$file"
+        echo "✅ created $file"
+    elif ! grep -Fq "$marker" "$file"; then
+        printf "\n%s\n" "$IGNORE_BLOCK" >> "$file"
+        echo "✅ updated $file"
+    else
+        echo "⏭️  already configured $file"
+    fi
+}
+
+echo "🚀 AI Token Optimizer — Deploying ignore patterns..."
+echo ""
+
+for f in .cursorignore .cursorindexingignore .geminiignore .codeiumignore .clineignore .aiignore; do
+    append_if_missing "$f"
+done
+
+echo ""
+echo "✅ Done. Review each file before commit."
+echo "⚠️  Do not hard-ignore files your agent must sometimes edit."

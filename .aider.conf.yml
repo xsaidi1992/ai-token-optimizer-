@@ -1,0 +1,6 @@
+# Aider Token Optimization (Guide 2026 §13)
+cache-prompts: true
+map-tokens: 1024
+map-refresh: auto
+max-chat-history-tokens: 16000
+reasoning-effort: low

@@ -1,0 +1,19 @@
+{
+    "search.exclude": {
+        "**/node_modules": true,
+        "**/.venv": true,
+        "**/vendor": true,
+        "**/dist": true,
+        "**/build": true,
+        "**/coverage": true,
+        "**/.cache": true,
+        "**/*.min.js": true,
+        "**/*.map": true,
+        "**/*.log": true
+    },
+    "files.exclude": {
+        "**/.cache": true,
+        "**/dist": true,
+        "**/build": true
+    }
+}
