@@ -20,3 +20,6 @@ composer.lock
 data/snapshots.json
 data/optimization_rules.json
 data/scanner_cache.json
+data/cache.json
+data/token_optimization_status.json
+
