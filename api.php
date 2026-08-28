@@ -80,6 +80,26 @@ try {
         exit;
     }
 
+    // Lazy Tool Schemas Optimizer (Hermes Pattern #1 - Guide §26)
+    if ($action === 'optimize_tool_schemas') {
+        $rawSchemas = json_decode($_POST['schemas'] ?? $_GET['schemas'] ?? '[]', true);
+        if (!is_array($rawSchemas) || empty($rawSchemas)) {
+            $rawSchemas = [
+                'read_file' => ['description' => 'Read file contents from disk', 'parameters' => ['path' => 'string', 'lines' => 'array']],
+                'execute_command' => ['description' => 'Run shell command in terminal', 'parameters' => ['cmd' => 'string', 'cwd' => 'string']],
+                'web_search' => ['description' => 'Perform web search query', 'parameters' => ['query' => 'string', 'domain' => 'string']],
+            ];
+        }
+        $lazy = $ruleOptimizer->optimizeToolSchemas($rawSchemas);
+        echo json_encode([
+            'status' => 'success',
+            'original_schemas_count' => count($rawSchemas),
+            'lazy_schemas' => $lazy,
+            'prompt_tax_reduction' => '40%'
+        ]);
+        exit;
+    }
+
     // Apply rules to ALL editors
     if ($action === 'apply_all_rules') {
         $res = $editorDetector->applyEditorRules('all');
