@@ -1,19 +1,24 @@
 <?php
 /**
- * RuleOptimizer Engine for Google Antigravity
- * Applies real optimization rules into ~/.gemini/antigravity/rules/ and computes 100% real log token metrics.
+ * RuleOptimizer Engine — AI Token Optimizer & Hermes Patterns
+ * Applies real optimization rules into ~/.gemini/antigravity/rules/ and computes token metrics.
+ * Implements Hermes Agent Patterns: Lazy Tool Schemas, Tool Batching, Skill Resolution, Prompt Evolution.
  */
+
+require_once __DIR__ . '/memory_indexer.php';
 
 class RuleOptimizer {
     private string $rulesDir;
     private string $ruleFile;
     private string $statusFile;
+    private MemoryIndexer $memoryIndexer;
 
     public function __construct() {
         $homeDir = getenv('HOME') ?: (getenv('USERPROFILE') ?: '/tmp');
         $this->rulesDir = $homeDir . '/.gemini/antigravity/rules';
         $this->ruleFile = $this->rulesDir . '/token_optimization.md';
         $this->statusFile = __DIR__ . '/data/token_optimization_status.json';
+        $this->memoryIndexer = new MemoryIndexer();
 
         if (!file_exists($this->rulesDir)) {
             @mkdir($this->rulesDir, 0755, true);
@@ -24,7 +29,7 @@ class RuleOptimizer {
         }
 
         if (!file_exists($this->statusFile)) {
-            $this->saveStatus(true, ['context-pruning', 'system-rule-compress', 'concise-diffs', 'token-trimming']);
+            $this->saveStatus(true, ['context-pruning', 'lazy-tool-schemas', 'tool-batching', 'skill-resolution', 'prompt-evolution']);
         }
     }
 
@@ -37,7 +42,7 @@ class RuleOptimizer {
     }
 
     /**
-     * Toggle or set optimization rules state and write real system rule file to ~/.gemini/antigravity/rules/
+     * Toggle or set optimization rules state and write real system rule file
      */
     public function toggleRules(?bool $targetState = null): array {
         $current = $this->getStatus();
@@ -51,13 +56,68 @@ class RuleOptimizer {
 
         $activeRules = $newState ? [
             'context-pruning',
-            'system-prompt-compression',
-            'concise-diff-generation',
-            'history-window-trimming'
+            'lazy-tool-schemas',
+            'tool-batching',
+            'skill-resolution',
+            'prompt-evolution'
         ] : [];
 
         $res = $this->saveStatus($newState, $activeRules);
         return $res;
+    }
+
+    /**
+     * Hermes Pattern #1: Lazy Tool Schemas
+     * Truncates massive JSON schemas to deferred reference signatures.
+     */
+    public function optimizeToolSchemas(array $toolSchemas): array {
+        $lazySchemas = [];
+        foreach ($toolSchemas as $name => $schema) {
+            $lazySchemas[$name] = [
+                'name' => $name,
+                'description' => $schema['description'] ?? "Tool $name",
+                'parameters' => 'deferred', // Defer full schema JSON payload
+            ];
+        }
+        return $lazySchemas;
+    }
+
+    /**
+     * Hermes Pattern #2: Tool Call Batching
+     * Returns explicit instruction forcing parallel tool execution in a single turn.
+     */
+    public function getBatchToolInstruction(): string {
+        return "- BATCH_EXECUTION: Whenever multiple shell, grep, or file edits are needed, combine them in a single parallel turn. Do not perform N sequential tool calls.";
+    }
+
+    /**
+     * Hermes Pattern #3: Skill Documents On-Demand (agentskills.io)
+     * Loads a scoped skill document from .agents/skills/ instead of always-on system rules.
+     */
+    public function resolveSkillDocument(string $skillName): string {
+        $skillPath = __DIR__ . "/.agents/skills/{$skillName}.md";
+        if (file_exists($skillPath)) {
+            return file_get_contents($skillPath);
+        }
+        return "Skill '$skillName' not found.";
+    }
+
+    /**
+     * Hermes Pattern #5: Prompt Evolution & Compression (GEPA / DSPy principle)
+     * Compresses verbose system prompts into minimal token representations.
+     */
+    public function optimizePrompt(string $rawPrompt): string {
+        // Strip comments and extra whitespace
+        $lines = explode("\n", $rawPrompt);
+        $cleanLines = [];
+        foreach ($lines as $line) {
+            $trimmed = trim($line);
+            if (empty($trimmed) || str_starts_with($trimmed, '#') || str_starts_with($trimmed, '//')) {
+                continue;
+            }
+            $cleanLines[] = $trimmed;
+        }
+        return implode("\n", $cleanLines);
     }
 
     /**
@@ -69,10 +129,14 @@ class RuleOptimizer {
 # Paths: ~/.gemini/antigravity/rules/token_optimization.md & .gemini/rules/token_optimization.md
 
 <token_optimization_rules>
-1. CONCISE_COMMUNICATION: Eliminate conversational commentary, preambles, and filler.
+1. CONCISE_COMMUNICATION: Eliminate conversational commentary, preambles, and filler (<= 8 lines).
 2. EFFICIENT_DIFFS: Always use compact targeted diff blocks instead of reprinting full files.
 3. CONTEXT_PRUNING: Truncate repetitive logs and omit unnecessary docstrings during code updates.
-4. COMPACT_FORMATTING: Use high-density markdown structures to reduce output token count.
+4. LAZY_TOOLS: Defer non-essential tool JSON schemas until explicitly needed (Hermes Pattern #1).
+5. TOOL_BATCHING: Collapse multi-step shell/file edits into 1 parallel turn (Hermes Pattern #2).
+6. SKILL_RESOLUTION: Use scoped .agents/skills/ documents rather than bloated always-on rules (Hermes Pattern #3).
+7. EPISODIC_SEARCH: Query SQLite FTS5 session memory instead of keeping long histories (Hermes Pattern #4).
+8. PROMPT_EVOLUTION: Keep prompts compressed to minimal token representations (Hermes Pattern #5).
 </token_optimization_rules>
 EOD;
 
@@ -93,53 +157,18 @@ EOD;
     }
 
     private function saveStatus(bool $isActive, array $rules): array {
-        // Calculate real token math based on actual disk logs scanned
         require_once __DIR__ . '/scanner.php';
         $scanner = new AntigravityScanner();
         $realMetrics = $scanner->scanRealDiskLogs();
 
-        $realInputToks = $realMetrics['prompt_tokens'];
-        $realOutputToks = $realMetrics['completion_tokens'];
-        $realTotalToks = $realMetrics['total_tokens'];
-        $realCost = $realMetrics['total_cost'];
-
-        // Real baseline (unoptimized) extrapolation vs optimized
-        if ($isActive) {
-            $baselineTotal = (int)ceil($realTotalToks * 2.18); // Real baseline unoptimized volume
-            $baselineCost = round($realCost * 2.15, 6);
-            $tokensSaved = $baselineTotal - $realTotalToks;
-            $savingsPct = round(($tokensSaved / $baselineTotal) * 100, 1);
-            $costSaved = round($baselineCost - $realCost, 6);
-        } else {
-            $baselineTotal = $realTotalToks;
-            $baselineCost = $realCost;
-            $tokensSaved = 0;
-            $savingsPct = 0.0;
-            $costSaved = 0.0;
-        }
-
-        $status = [
+        $statusData = [
             'is_active' => $isActive,
             'updated_at' => date('Y-m-d H:i:s'),
-            'rule_file_path' => $this->ruleFile,
             'rules' => $rules,
-            'real_math' => [
-                'scanned_files_count' => $realMetrics['scanned_files'],
-                'real_events_count' => $realMetrics['event_count'],
-                'real_prompt_tokens' => $realInputToks,
-                'real_completion_tokens' => $realOutputToks,
-                'real_total_tokens' => $realTotalToks,
-                'real_cost_usd' => round($realCost, 6),
-                'baseline_total_tokens' => $baselineTotal,
-                'baseline_cost_usd' => round($baselineCost, 6),
-                'tokens_saved' => $tokensSaved,
-                'savings_percent' => $savingsPct,
-                'cost_saved_usd' => $costSaved,
-                'compression_ratio' => $isActive ? 2.18 : 1.0
-            ]
+            'metrics' => $realMetrics['summary'] ?? []
         ];
 
-        file_put_contents($this->statusFile, json_encode($status, JSON_PRETTY_PRINT));
-        return $status;
+        file_put_contents($this->statusFile, json_encode($statusData, JSON_PRETTY_PRINT));
+        return $statusData;
     }
 }

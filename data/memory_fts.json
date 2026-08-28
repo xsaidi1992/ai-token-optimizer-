@@ -1,0 +1,26 @@
+[
+    {
+        "session_id": "sess_001",
+        "role": "user",
+        "content": "How to optimize prompt tokens and reduce reasoning tax in Linux IDE agents?",
+        "timestamp": 1787944231
+    },
+    {
+        "session_id": "sess_001",
+        "role": "assistant",
+        "content": "Apply Guide 2026 rules: stable header prompt caching, noise exclusions, and lazy tool schemas.",
+        "timestamp": 1787944331
+    },
+    {
+        "session_id": "sess_002",
+        "role": "user",
+        "content": "What is the Hermes Agent pattern for memory retention?",
+        "timestamp": 1787946031
+    },
+    {
+        "session_id": "sess_002",
+        "role": "assistant",
+        "content": "Hermes Agent uses SQLite FTS5 episodic search with curated MEMORY.md and procedural skill documents.",
+        "timestamp": 1787946131
+    }
+]

@@ -47,6 +47,16 @@ try {
         exit;
     }
 
+    // FTS5 Memory Search (Hermes Pattern #4)
+    if ($action === 'search_fts_memory') {
+        require_once __DIR__ . '/memory_indexer.php';
+        $mem = new MemoryIndexer();
+        $q = $_GET['q'] ?? $_POST['q'] ?? '';
+        $results = $mem->searchMemory($q, 5);
+        echo json_encode(['status' => 'success', 'query' => $q, 'results' => $results]);
+        exit;
+    }
+
     // Apply rules to ALL editors
     if ($action === 'apply_all_rules') {
         $res = $editorDetector->applyEditorRules('all');
