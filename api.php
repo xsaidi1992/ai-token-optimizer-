@@ -73,6 +73,13 @@ try {
         exit;
     }
 
+    // Tool Batching Instruction (Hermes Pattern #2)
+    if ($action === 'get_batch_instruction') {
+        $instruction = $ruleOptimizer->getBatchToolInstruction();
+        echo json_encode(['status' => 'success', 'instruction' => $instruction]);
+        exit;
+    }
+
     // Apply rules to ALL editors
     if ($action === 'apply_all_rules') {
         $res = $editorDetector->applyEditorRules('all');

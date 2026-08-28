@@ -75,9 +75,10 @@ EOD;
     /** Returns the AGENTS.md ultra-compact content (Section 16) */
     private function getAgentsMd(): string {
         return <<<'EOD'
-# Universal AGENTS.md Rules (Guide 2026 §16)
+# Universal AGENTS.md Rules (Guide 2026 §16 & Tool Batching)
 - Search narrowly before reading files.
 - Read only files needed for the current task.
+- Batch tool execution in 1 parallel turn instead of N sequential calls.
 - Prefer targeted tests during iteration.
 - Do not inspect generated dependencies unless necessary.
 - Use only tools required for the task.
