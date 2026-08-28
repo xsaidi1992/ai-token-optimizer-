@@ -158,6 +158,12 @@ EOD;
                 'cmds' => ['codex'],
                 'models' => ['GPT-5.6 Luna','GPT-5.6 Terra','GPT-5.6 Sol'],
             ],
+            'hermes' => [
+                'name' => 'Hermes Agent (NousResearch)', 'icon' => '🪽',
+                'paths' => ["$h/.hermes", "$h/.config/hermes"],
+                'cmds' => ['hermes'],
+                'models' => ['Hermes 3 Llama 70B', 'Hermes 3 Llama 405B', 'Hermes 2 Pro', 'Claude Sonnet (Hermes)', 'Gemini Flash (Hermes)'],
+            ],
         ];
     }
 
@@ -266,6 +272,11 @@ EOD;
                 'tier1' => ['name' => 'GPT-5.6 Terra', 'usage' => 'Feature standard, API design', 'effort' => 'Default reasoning'],
                 'tier2' => ['name' => 'GPT-5.6 Sol', 'usage' => 'Architecture, critical review', 'effort' => 'High reasoning'],
             ],
+            'hermes' => [
+                'tier0' => ['name' => 'Hermes 3 Llama 70B / Flash', 'usage' => 'Routine, tool-calling, skills execution', 'effort' => 'Lazy context mode'],
+                'tier1' => ['name' => 'Hermes 3 405B / Sonnet', 'usage' => 'Complex reasoning, procedural evolution', 'effort' => 'FTS5 session search'],
+                'tier2' => ['name' => 'Hermes 3 Frontier / Opus', 'usage' => 'GEPA Prompt Evolution, multi-agent orchestrate', 'effort' => 'Full trajectory compress'],
+            ],
             default => [],
         };
     }
@@ -321,6 +332,11 @@ EOD;
                 '§3 Modèles : Luna pour routine, Sol uniquement pour plan d\'architecture.',
                 '§3 AGENTS.md : Limiter à 30-100 lignes max par repository.',
             ],
+            'hermes' => [
+                '§Hermes-1 Lazy Tool Schemas : Déferrer le chargement des schémas JSON pour économiser 40% de Prompt Tax.',
+                '§Hermes-2 Memory Pruning : Conserver ~/.hermes/memories/MEMORY.md sous 500 tokens au lieu d\'historiques illimités.',
+                '§Hermes-3 Procedural Skills : Convertir les instructions récurrentes en Skill Documents (.agents/skills/).',
+            ],
             default => [],
         };
     }
@@ -340,6 +356,7 @@ EOD;
             'cline' => ["$w/.clineignore", "$w/.clinerules/token_optimization.md"],
             'aider' => ["$w/.aider.conf.yml"],
             'codex' => ["$w/AGENTS.md", "$w/codex.md"],
+            'hermes' => ["$h/.hermes/memories/MEMORY.md", "$w/.agents/skills/token_optimization.md"],
             default => [],
         };
     }
@@ -503,6 +520,28 @@ RULE);
             case 'codex':
                 file_put_contents("$w/AGENTS.md", $agentsMd);
                 file_put_contents("$w/codex.md", "# OpenAI Codex Optimization (Guide 2026 §3)\n- Luna for routine, Terra for standard, Sol only for architecture.\n- Keep AGENTS.md compact: 30-100 lines max.\n- Stable prompt prefix for cache hits.\n- Concise output: patch + test + max 8 lines.\n");
+                break;
+
+            case 'hermes':
+                @mkdir("$h/.hermes/memories", 0755, true);
+                @mkdir("$w/.agents/skills", 0755, true);
+                file_put_contents("$h/.hermes/memories/MEMORY.md", <<<'RULE'
+# Hermes Agent Curated Memory (Guide 2026 & Hermes Architecture)
+- LAZY_TOOLS: Defer loading tool JSON schemas until explicitly required by task.
+- MEMORY_PRUNING: Keep MEMORY.md concise (<500 tokens). Use FTS5 state.db for session search.
+- PROCEDURAL_SKILLS: Convert recurring workflows into scoped skill files in .agents/skills/.
+- CONCISE_OUTPUT: Limit responses to diffs and test status (<= 8 lines).
+RULE);
+                file_put_contents("$w/.agents/skills/token_optimization.md", <<<'RULE'
+---
+name: token_optimization
+description: Enforce token minimization, lazy tool loading, and concise outputs.
+---
+# Token Optimization Skill
+- Read only relevant files.
+- Batch tool execution in 1 turn.
+- Output <= 8 lines.
+RULE);
                 break;
         }
 

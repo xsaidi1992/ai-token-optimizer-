@@ -2,12 +2,12 @@
 
 # ⚡ AI Token Optimizer ⚡
 ### Universal Token Optimization & Analytics Suite for AI Coding Agents
-**Dedicated for Linux Environments • 11 Supported IDEs & CLI Agents • Guide 2026 Ready**
+**Dedicated for Linux Environments • 12 Supported IDEs & Autonomous Agents • Guide 2026 Ready**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-emerald.svg)](LICENSE)
 [![Platform: Linux](https://img.shields.io/badge/Platform-Linux-blue.svg)](https://kernel.org)
 [![PHP Version](https://img.shields.io/badge/PHP-7.4%2B-777BB4.svg)](https://php.net)
-[![IDEs Supported](https://img.shields.io/badge/Supported%20IDEs-11%20Agents-indigo.svg)](#-compatible-ides--ai-agents)
+[![IDEs Supported](https://img.shields.io/badge/Supported%20IDEs-12%20Agents-indigo.svg)](#-compatible-ides--ai-agents)
 
 ---
 
@@ -17,14 +17,15 @@
 
 **AI Token Optimizer** is a production-ready, enterprise-grade optimization suite designed to eliminate context bloat, reduce token consumption by up to **60%**, cut API costs, and accelerate agent response speed across all major AI coding tools on **Linux**.
 
-Rather than dumping entire codebases into context windows, **AI Token Optimizer** enforces high-precision context engineering, automated noise filtering, prompt caching optimization (Guide 2026 §29), and smart model tier routing.
+Rather than dumping entire codebases into context windows, **AI Token Optimizer** enforces high-precision context engineering, automated noise filtering, prompt caching optimization (Guide 2026 §29), lazy tool loading (NousResearch Hermes Agent pattern), and smart model tier routing.
 
 ---
 
 ## ✨ Key Capabilities & Features
 
-- 🎛️ **11 Dedicated IDE & Agent Dashboards**: Custom metrics, model routing matrices, and rule deployment for each supported AI tool.
+- 🎛️ **12 Dedicated IDE & Agent Dashboards**: Custom metrics, model routing matrices, and rule deployment for each supported AI tool (including NousResearch Hermes Agent).
 - 📊 **Real-Time Consumption Analytics**: Track prompt tokens, cached inputs, reasoning effort tax (§30), and tool/MCP output taxes (§26).
+- 🪽 **Hermes Agent Optimization Engine**: Lazy tool schema loading, procedural skill documents on-demand (`.agents/skills/`), and memory pruning (`~/.hermes/memories/MEMORY.md`).
 - 📸 **Per-IDE Benchmark Engine**: Measure AVANT (baseline) vs. APRÈS (optimized) token savings and compression ratios per model.
 - 🔍 **Interactive Guide 2026 Engine**: 52 structured token optimization strategies with 1-click rule deployment.
 - 🛡️ **Workspace Audit Engine**: Non-destructive noise scanner for large binaries, log files, node_modules, and vendor directories.
@@ -46,19 +47,22 @@ Rather than dumping entire codebases into context windows, **AI Token Optimizer*
 | 🧠 | **JetBrains AI** | `~/.config/JetBrains/` | GPT-5.6 Luna / AI Pro / Opus |
 | 🧬 | **Cline** | `~/.vscode/extensions/cline/` | Gemini Flash / Sonnet / GPT-5.6 Terra |
 | 🐍 | **Aider** | `~/.aider.conf.yml` | Gemini Flash / Sonnet / GPT-5.6 Terra |
-| ⚙️ | **OpenAI Codex** | `~/.codex/config.toml` | GPT-5.6 Luna / Terra / Sol |
+| 🔮 | **OpenAI Codex** | `~/.codex/config.toml` | GPT-5.6 Luna / Terra / Sol |
+| 🪽 | **Hermes Agent (NousResearch)** | `~/.hermes/memories/` & `.agents/skills/` | Hermes 3 70B / 405B / Sonnet / Opus |
 
 ---
 
-## ⚡ Optimization Rules Matrix (Guide 2026)
+## ⚡ Optimization Rules Matrix (Guide 2026 & Hermes Patterns)
 
 | Category | Optimization Rule | Applied Reduction | Impact |
 | :--- | :--- | :---: | :--- |
 | **Context Pruning** | Noise Exclusions (`.geminiignore`, `.cursorignore`, `.codeiumignore`) | **-35% Prompt Tokens** | Eliminates build artifacts, dist, node_modules, binaries |
+| **Lazy Tool Schemas** | Deferred Tool Schema Injection (Hermes Agent Pattern) | **-40% Tool Output Tax** | Loads tool JSON schemas on-demand rather than pre-dumping |
+| **Procedural Skills** | Scoped Skill Resolution (`.agents/skills/` / agentskills.io) | **-50% Always-On Tokens** | Replaces bloated always-on rules with modular task skills |
 | **Prompt Caching** | Stable Header Anchoring (§29) | **-68% Cache Hits** | Reuses cached prompt prefixes across multi-turn sessions |
 | **Reasoning Tax** | Thinking Effort Cap (`/fast` mode) (§30) | **-50% Reasoning Costs** | Prevents reasoning over-thinking on simple edits |
 | **Output Compression** | Concise Mode & Minimal Diff Mandates | **-45% Response Tokens** | Prevents re-writing unchanged boilerplate code |
-| **MCP / Tool Tax** | Scoped Tool Schema Truncation (§26) | **-40% Output Tax** | Limits massive JSON outputs from bash/read commands |
+| **Memory Pruning** | Curated Memory & FTS5 Episodic Recall (`MEMORY.md`) | **-60% Memory Tax** | Keeps session state <500 tokens with SQLite retrieval |
 
 ---
 
