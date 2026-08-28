@@ -95,11 +95,28 @@ class RuleOptimizer {
      * Loads a scoped skill document from .agents/skills/ instead of always-on system rules.
      */
     public function resolveSkillDocument(string $skillName): string {
-        $skillPath = __DIR__ . "/.agents/skills/{$skillName}.md";
-        if (file_exists($skillPath)) {
-            return file_get_contents($skillPath);
+        $skillsDir = __DIR__ . "/.agents/skills";
+        if (!file_exists($skillsDir)) {
+            @mkdir($skillsDir, 0755, true);
         }
-        return "Skill '$skillName' not found.";
+        $skillPath = "{$skillsDir}/{$skillName}.md";
+
+        if (!file_exists($skillPath)) {
+            $defaultSkill = <<<'SKILL'
+---
+name: token_optimization
+description: Enforce token minimization, lazy tool loading, and concise outputs (agentskills.io standard).
+---
+# Token Optimization Skill (agentskills.io Standard)
+- LAZY_TOOLS: Defer non-essential tool JSON schemas until requested.
+- TOOL_BATCHING: Perform parallel tool calls in 1 single turn.
+- CONCISE_OUTPUT: Limit responses to diffs and test status (<= 8 lines).
+- NOISE_EXCLUSION: Ignore build, dist, logs, and vendor directories.
+SKILL;
+            file_put_contents($skillPath, $defaultSkill);
+        }
+
+        return file_get_contents($skillPath);
     }
 
     /**

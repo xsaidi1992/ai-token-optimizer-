@@ -65,6 +65,14 @@ try {
         exit;
     }
 
+    // Skill Documents On-Demand (agentskills.io - Hermes Pattern #3)
+    if ($action === 'resolve_skill') {
+        $skillName = $_GET['skill'] ?? $_POST['skill'] ?? 'token_optimization';
+        $content = $ruleOptimizer->resolveSkillDocument($skillName);
+        echo json_encode(['status' => 'success', 'skill' => $skillName, 'content' => $content]);
+        exit;
+    }
+
     // Apply rules to ALL editors
     if ($action === 'apply_all_rules') {
         $res = $editorDetector->applyEditorRules('all');
