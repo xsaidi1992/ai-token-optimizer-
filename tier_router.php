@@ -38,7 +38,7 @@ class TierRouter {
         foreach ($this->tier2Signals as $signal) {
             if (str_contains($lower, $signal)) {
                 $tier = 'tier2';
-                $reasons[] = "Signal: «$signal»";
+                $reasons[] = "Signal: «{$signal}»";
                 break;
             }
         }
@@ -48,7 +48,7 @@ class TierRouter {
             foreach ($this->tier1Signals as $signal) {
                 if (str_contains($lower, $signal)) {
                     $tier = 'tier1';
-                    $reasons[] = "Signal: «$signal»";
+                    $reasons[] = "Signal: «{$signal}»";
                     break;
                 }
             }
