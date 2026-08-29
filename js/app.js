@@ -180,7 +180,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             <!-- Detailed Token Breakdown Matrix (Guide §1.1 & §18) -->
             <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:1rem; margin-top:1.5rem; padding-top:1.25rem; border-top:1px solid rgba(255,255,255,0.08)">
-                
                 <!-- FEATURED HERO KPI: GAIN $ / 100K TOKENS -->
                 <div style="grid-column: 1 / -1; background: linear-gradient(135deg, rgba(16,185,129,0.22), rgba(6,182,212,0.15)); padding: 1.25rem 1.5rem; border-radius: 14px; border: 1.5px solid rgba(16,185,129,0.5); box-shadow: 0 0 25px rgba(16,185,129,0.2); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
                     <div>
@@ -188,23 +187,28 @@ document.addEventListener('DOMContentLoaded', () => {
                             💰 PERFORMANCE FINANCIÈRE • GAIN NET PAR 100K TOKENS
                         </span>
                         <div style="font-size: 2.4rem; font-weight: 900; color: #ffffff; margin: 0.2rem 0; font-family: var(--font-heading);">
-                            +$${kpi.savings_per_100k || '0.00'} <span style="font-size: 1.1rem; color: #10b981; font-weight: 700;">/ 100k tokens économisés</span>
+                            +$${Number(kpi.savings_per_100k || 0).toFixed(4)} <span style="font-size: 1.1rem; color: #10b981; font-weight: 700;">/ 100k tokens économisés</span>
                         </div>
                         <div style="font-size: 0.85rem; color: var(--text-muted);">
-                            Baseline (Avant) : <span style="color: #ef4444; font-weight: 700;">$${kpi.cost_per_100k_before || '0.00'}</span> &nbsp;→&nbsp; Optimisé (Après) : <span style="color: #10b981; font-weight: 700;">$${kpi.cost_per_100k_after || '0.00'}</span>
+                            Baseline (Sans optimisation) : <span style="color: #ef4444; font-weight: 700;">$${Number(kpi.cost_per_100k_before || 0).toFixed(4)}</span>
+                            &nbsp;→&nbsp;
+                            Optimisé (Réel) : <span style="color: #10b981; font-weight: 700;">$${Number(kpi.cost_per_100k_after || 0).toFixed(4)}</span>
+                        </div>
+                        <div style="font-size: 0.78rem; color: var(--text-dim); margin-top: 0.3rem;">
+                            ${kpi.active_rule_count ?? 0} règles actives sur ${Object.keys(kpi.optimization_strategies || {}).length} disponibles
                         </div>
                     </div>
                     <div style="background: rgba(0,0,0,0.35); padding: 0.85rem 1.4rem; border-radius: 12px; border: 1px solid rgba(16,185,129,0.4); text-align: right;">
-                        <span style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; display: block; font-weight: 700;">Économie Financière</span>
-                        <span style="font-size: 1.6rem; font-weight: 900; color: #10b981;">64.8%</span>
-                        <span style="font-size: 0.72rem; color: var(--text-dim); display: block;">Moteur 5 Patterns Actif</span>
+                        <span style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; display: block; font-weight: 700;">Économie Calculée</span>
+                        <span style="font-size: 1.6rem; font-weight: 900; color: #10b981;">${kpi.savings_percent ?? 0}%</span>
+                        <span style="font-size: 0.72rem; color: var(--text-dim); display: block;">Moteur 8 Patterns Actif</span>
                     </div>
                 </div>
 
                 <div style="background:rgba(0,0,0,0.25); padding:0.85rem 1rem; border-radius:10px; border:1px solid rgba(255,255,255,0.05)">
                     <span style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase; display:block">Score d'Optimisation</span>
-                    <span style="font-size:1.4rem; font-weight:800; color:var(--accent-emerald)">${kpi.opt_score || 94}/100</span>
-                    <span style="font-size:0.72rem; color:#10b981; display:block">⚡ Ultra-Efficient</span>
+                    <span style="font-size:1.4rem; font-weight:800; color:var(--accent-emerald)">${kpi.opt_score ?? 70}/100</span>
+                    <span style="font-size:0.72rem; color:#10b981; display:block">${kpi.active_rule_count ?? 0} règles actives</span>
                 </div>
                 <div style="background:rgba(0,0,0,0.25); padding:0.85rem 1rem; border-radius:10px; border:1px solid rgba(255,255,255,0.05)">
                     <span style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase; display:block">Prompt Cache Hit Ratio</span>
@@ -217,9 +221,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     <span style="font-size:0.72rem; color:var(--text-dim)">Guide §1.1 Iteration tax</span>
                 </div>
                 <div style="background:rgba(0,0,0,0.25); padding:0.85rem 1rem; border-radius:10px; border:1px solid rgba(255,255,255,0.05)">
-                    <span style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase; display:block">Coût / Tâche Réussie</span>
-                    <span style="font-size:1.4rem; font-weight:800; color:var(--accent-pink)">$${kpi.cost_per_task || '0.0032'}</span>
-                    <span style="font-size:0.72rem; color:var(--text-dim)">Guide §32 True KPI</span>
+                    <span style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase; display:block">Coût Réel / Tâche</span>
+                    <span style="font-size:1.4rem; font-weight:800; color:var(--accent-pink)">$${Number(kpi.cost_per_task || 0).toFixed(5)}</span>
+                    <span style="font-size:0.72rem; color:var(--text-dim)">Baseline: $${Number(kpi.baseline_cost_per_task || 0).toFixed(5)}</span>
                 </div>
                 <div style="background:rgba(0,0,0,0.25); padding:0.85rem 1rem; border-radius:10px; border:1px solid rgba(255,255,255,0.05)">
                     <span style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase; display:block">Reasoning Effort Cost</span>
@@ -646,5 +650,12 @@ document.addEventListener('DOMContentLoaded', () => {
     fetchEditors();
     fetchSnapshots(activeBenchmarkEditor);
     fetchOptStatus();
-    setInterval(() => { fetchEditors(); fetchOptStatus(); }, REFRESH_INTERVAL);
+    // Refresh metrics every 5s — cache TTL in scanner.php is also 5s
+    setInterval(() => {
+        fetchEditors();
+        fetchOptStatus();
+        // Force-refresh scanned_at timestamp display
+        const ts = document.getElementById('scanned-at-time');
+        if (ts) ts.textContent = new Date().toLocaleTimeString();
+    }, REFRESH_INTERVAL);
 });
