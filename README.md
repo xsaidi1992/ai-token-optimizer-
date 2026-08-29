@@ -189,35 +189,36 @@ The proxy intercepts **every** Claude / Gemini API call in real time and applies
 
 ```mermaid
 flowchart TD
-    IDE["🖥️ IDE / Agent\n(Antigravity · Cursor · Claude Code…)\nANTHROPIC_BASE_URL=localhost:3100"]
-    PROXY["⚡ proxy/proxy.php\n:3100"]
-    OPT["🔧 proxy/optimizer.php\nRequestOptimizer"]
+    IDE["IDE / Agent - Antigravity, Cursor, Claude Code
+ANTHROPIC_BASE_URL=localhost:3100"]
+    PROXY["proxy/proxy.php - port 3100"]
+    OPT["proxy/optimizer.php - RequestOptimizer"]
 
     subgraph PIPELINE ["8-Pattern Optimization Pipeline"]
         direction TB
-        P1["① System Prompt Slim\n→ truncate to 200 chars  (-10%)"]
-        P2["② Concision Directive Inject\n→ append [OPT:concise,diff-only,≤8lines]"]
-        P3["③ Lazy Tool Schemas\n→ max 5 tools · 40-char desc · strip $ref  (-40%)"]
-        P4["④ Tool Result Truncation\n→ cap at 100 lines  (-60% tool output)"]
-        P5["⑤ Filler Removal\n→ strip EN/FR filler phrases  (-10%)"]
-        P6["⑥ History Compression\n→ keep first 1 + last 8 msgs  (-55%)"]
-        P7["⑦ Deduplication\n→ drop consecutive identical msgs  (-5%)"]
-        P8["⑧ max_tokens Enforcement\n→ tier0=400 · tier1=1200 · tier2=3000  (-75% output)"]
+        P1["1 - System Prompt Slim - truncate 200 chars - minus 10pct"]
+        P2["2 - Concision Inject - append concise directive"]
+        P3["3 - Lazy Tool Schemas - max 5 tools, strip noise - minus 40pct"]
+        P4["4 - Tool Result Truncation - cap 100 lines - minus 60pct"]
+        P5["5 - Filler Removal - strip EN/FR fillers - minus 10pct"]
+        P6["6 - History Compression - first 1 plus last 8 msgs - minus 55pct"]
+        P7["7 - Deduplication - drop identical consecutive msgs - minus 5pct"]
+        P8["8 - max tokens Cap - tier0=400 / tier1=1200 / tier2=3000 - minus 75pct"]
         P1 --> P2 --> P3 --> P4 --> P5 --> P6 --> P7 --> P8
     end
 
-    UPSTREAM["☁️ Real AI API\n(Anthropic · Google · OpenAI)"]
-    STATS["📊 proxy_stats.json\n(last 200 requests · savings_pct · tokens_saved)"]
-    DASHBOARD["📈 Dashboard :8080\nReal-time KPIs · Savings · Benchmarks"]
+    UPSTREAM["Real AI API - Anthropic / Google / OpenAI"]
+    STATS["proxy stats.json - last 200 requests"]
+    DASHBOARD["Dashboard port 8080 - Real-time KPIs"]
 
-    IDE -->|"Raw request\n(full payload)"| PROXY
+    IDE -->|Raw request| PROXY
     PROXY --> OPT
     OPT --> PIPELINE
-    PIPELINE -->|"Optimized payload\n(up to -88% tokens)"| UPSTREAM
-    UPSTREAM -->|"Response (unchanged)"| PROXY
-    PROXY -->|"Transparent passthrough"| IDE
-    PIPELINE -.->|"Log savings"| STATS
-    STATS -.->|"api.php /scan"| DASHBOARD
+    PIPELINE -->|Optimized payload -88pct tokens| UPSTREAM
+    UPSTREAM -->|Response passthrough| PROXY
+    PROXY -->|Transparent response| IDE
+    PIPELINE -.->|Log savings| STATS
+    STATS -.->|api.php scan| DASHBOARD
 ```
 
 > **Key insight:** the IDE sees a normal API — no code change required. 100% of the optimization happens inside the proxy, invisibly.
