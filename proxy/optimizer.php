@@ -1,37 +1,34 @@
 <?php
 /**
- * RequestOptimizer — 8-Pattern aggressive token optimization
+ * RequestOptimizer — 12-Pattern aggressive token optimization
  * Applied BEFORE forwarding to the real API.
  * The model is NEVER changed — only the payload is compressed.
  *
- * Realistic savings breakdown:
- *   Tool schemas (lazy, max 5, 40-char desc) ........ -40%  input
- *   Tool results (truncate to 100 lines) ............. -60%  tool output
- *   Message compression (keep first 1 + last 8) ...... -55%  history
- *   max_tokens enforcement by tier ................... -75%  output
- *   System prompt slim (<200 chars) .................. -10%  system
- *   User message filler removal ...................... -10%  user msgs
- *   Duplicate message removal ........................  -5%
- *   Tool schema extras removal .......................  -5%
- *   ─────────────────────────────────────────────────────────
- *   Combined (stacked) ............................. ~85-90%
+ * ═══════════════════════════════════════════════════════════════
+ * PRODUCTION-GRADE v2: 12 patterns calibrated for all IDEs.
+ * Steps 1-8: original core.  Steps 9-12: advanced (base64, assistant
+ * trim, empty cleanup, Google systemInstruction).
+ * ═══════════════════════════════════════════════════════════════
  */
 
 class RequestOptimizer
 {
-    // Aggressive limits
-    const MAX_TOOLS              = 5;
-    const MAX_TOOL_DESC_LEN      = 40;    // chars — was 80
-    const MAX_TOOL_RESULT_LINES  = 100;   // lines — was 150
-    const MAX_MESSAGES_KEEP_LAST = 8;     // recent messages to keep
-    const MAX_MESSAGES_KEEP_FIRST = 1;    // initial context messages to keep
-    const MAX_SYSTEM_LEN         = 200;   // chars for system prompt
+    // ── Calibrated limits ────────────────────────────────────────────────────
+    const MAX_TOOLS              = 5;     // Keep only 5 most relevant tools
+    const MAX_TOOL_DESC_LEN      = 40;    // Descriptions beyond this are waste
+    const MAX_TOOL_RESULT_LINES  = 100;   // 100 lines is enough context
+    const MAX_MESSAGES_KEEP_LAST = 8;     // Recent conversation window
+    const MAX_MESSAGES_KEEP_FIRST = 1;    // System context anchor
+    const MAX_SYSTEM_LEN         = 800;   // Preserve core instructions, strip examples
+    const MAX_PROP_DESC_LEN      = 30;    // Property descriptions in schemas
+    const MAX_ASSISTANT_HIST_LEN = 200;   // Trim old assistant msgs to this length
+    const BASE64_PLACEHOLDER     = '[image data removed by optimizer]';
 
-    // max_tokens by tier (aggressive)
+    // max_tokens by tier — calibrated to avoid finish_reason=length retries
     const MAX_TOKENS = [
-        'tier0' => 400,   // rename, lint, format → very short answer
-        'tier1' => 1200,  // feature, refactor → moderate answer
-        'tier2' => 3000,  // architecture, debug → detailed answer
+        'tier0' => 800,    // simple tasks: rename, lint, format
+        'tier1' => 2000,   // moderate: feature, refactor, test
+        'tier2' => 4000,   // complex: architecture, debug, plan
     ];
 
     // Filler phrases to strip from user messages (EN + FR)
@@ -42,70 +39,125 @@ class RequestOptimizer
         '/\bfeel free to\b/i', '/\byou should always\b/i',
         '/\bas an ai\b/i', '/\bplease note that\b/i',
         '/\bI would like you to\b/i', '/\bCould you please\b/i',
+        '/\bI need you to\b/i', '/\bplease do\b/i',
+        '/\bkindly\b/i', '/\bwould you be so kind\b/i',
         // French fillers
         '/\bn.oublie pas de\b/i', '/\bveuillez\b/i',
         '/\bs.il te pla.t\b/i', '/\bs.il vous pla.t\b/i',
         '/\bassurez-vous de\b/i', '/\bfais en sorte de\b/i',
         '/\bil est important de noter que\b/i', '/\btu dois toujours\b/i',
         '/\ben tant qu.ia\b/i', '/\bj.aimerais que tu\b/i',
+        '/\bmerci de\b/i', '/\bpourriez-vous\b/i',
     ];
 
     // Task tier signals
-    const TIER2_SIGNALS = ['architecture','design','security','debug','concurrent','distributed','plan','system design','race'];
-    const TIER1_SIGNALS = ['refactor','implement','feature','migrate','test','review','api','integration','component'];
+    const TIER2_SIGNALS = [
+        'architecture','design','security','debug','concurrent','distributed',
+        'plan','system design','race','migration','refactoring large','performance',
+    ];
+    const TIER1_SIGNALS = [
+        'refactor','implement','feature','migrate','test','review',
+        'api','integration','component','fix','add','create','build',
+    ];
+
+    // Schema keys to strip recursively
+    const STRIP_SCHEMA_KEYS = [
+        'examples','$defs','$schema','title','additionalProperties',
+        '$ref','allOf','anyOf','oneOf','not','if','then','else',
+        'minItems','maxItems','minLength','maxLength','pattern',
+        'minimum','maximum','exclusiveMinimum','exclusiveMaximum',
+        'deprecated','readOnly','writeOnly','xml',
+    ];
 
     // ─── Public entry ────────────────────────────────────────────────────────
 
     public function optimize(array $payload, string $uri = ''): array
     {
+        // Measure input BEFORE optimization
+        $inputBefore = strlen(json_encode($payload, JSON_UNESCAPED_UNICODE));
+
         $stats = [
             'uri'                     => $uri,
+            'input_bytes_before'      => $inputBefore,
+            'input_bytes_after'       => 0,
+            'savings_pct'             => 0,
             'tools_trimmed'           => 0,
+            'tools_total_before'      => 0,
             'tool_results_truncated'  => 0,
+            'messages_before'         => 0,
+            'messages_after'          => 0,
             'messages_compressed'     => 0,
             'messages_deduped'        => 0,
             'filler_removed'          => 0,
-            'max_tokens_set'          => null,
+            'system_chars_before'     => 0,
+            'system_chars_after'      => 0,
             'system_trimmed'          => false,
+            'max_tokens_set'          => null,
+            'max_tokens_tier'         => null,
+            'base64_stripped'         => 0,
+            'assistant_trimmed'       => 0,
+            'empty_removed'           => 0,
+            'google_sys_trimmed'      => false,
             'tokens_saved_est'        => 0,
         ];
 
-        // 1. Slim system prompt
+        // Detect message key: Anthropic/OpenAI = messages, Google = contents
+        $msgKey = isset($payload['messages']) ? 'messages'
+                : (isset($payload['contents']) ? 'contents' : null);
+
+        if ($msgKey) {
+            $stats['messages_before'] = count($payload[$msgKey]);
+        }
+
+        // ═════════════════════════════════════════════════════════════════════
+        // STEP 1: System Prompt Slim
+        // ═════════════════════════════════════════════════════════════════════
         if (!empty($payload['system'])) {
+            $stats['system_chars_before'] = $this->measureSystem($payload['system']);
             [$payload['system'], $stats['system_trimmed']] = $this->slimSystem($payload['system']);
+            $stats['system_chars_after'] = $this->measureSystem($payload['system']);
         }
 
-        // 2. Inject concision directive then re-slim to enforce cap
+        // ═════════════════════════════════════════════════════════════════════
+        // STEP 2: Inject Concision Directive
+        // ═════════════════════════════════════════════════════════════════════
         $payload = $this->injectDirective($payload);
-        if (!empty($payload['system'])) {
-            [$payload['system'], ] = $this->slimSystem($payload['system']);
-        }
 
-        // 3. Lazy tool schemas (most impactful on input tokens)
+        // ═════════════════════════════════════════════════════════════════════
+        // STEP 3: Lazy Tool Schemas (most impactful on input tokens)
+        // ═════════════════════════════════════════════════════════════════════
         if (!empty($payload['tools'])) {
+            $stats['tools_total_before'] = count($payload['tools']);
             [$payload['tools'], $stats['tools_trimmed']] = $this->optimizeTools($payload['tools']);
             $stats['tokens_saved_est'] += $stats['tools_trimmed'] * 300;
         }
 
-        // 4. Truncate tool results in messages
-        $msgKey = isset($payload['messages']) ? 'messages' : (isset($payload['contents']) ? 'contents' : null);
+        // ═════════════════════════════════════════════════════════════════════
+        // STEP 4: Tool Result Truncation
+        // ═════════════════════════════════════════════════════════════════════
         if ($msgKey) {
             [$payload[$msgKey], $stats['tool_results_truncated']] = $this->truncateToolResults($payload[$msgKey]);
             $stats['tokens_saved_est'] += $stats['tool_results_truncated'] * 800;
         }
 
-        // 5. Compress user messages (filler removal)
+        // ═════════════════════════════════════════════════════════════════════
+        // STEP 5: Filler Removal from user messages
+        // ═════════════════════════════════════════════════════════════════════
         if ($msgKey) {
             [$payload[$msgKey], $stats['filler_removed']] = $this->compressUserMessages($payload[$msgKey]);
         }
 
-        // 6. Compress message history (most impactful on long conversations)
+        // ═════════════════════════════════════════════════════════════════════
+        // STEP 6: History Compression (most impactful on long conversations)
+        // ═════════════════════════════════════════════════════════════════════
         if ($msgKey && count($payload[$msgKey]) > self::MAX_MESSAGES_KEEP_FIRST + self::MAX_MESSAGES_KEEP_LAST + 2) {
             [$payload[$msgKey], $stats['messages_compressed']] = $this->compressHistory($payload[$msgKey]);
             $stats['tokens_saved_est'] += $stats['messages_compressed'] * 400;
         }
 
-        // 7. Deduplicate consecutive messages
+        // ═════════════════════════════════════════════════════════════════════
+        // STEP 7: Deduplicate consecutive identical messages
+        // ═════════════════════════════════════════════════════════════════════
         if ($msgKey) {
             $before = count($payload[$msgKey]);
             $payload[$msgKey] = $this->deduplicate($payload[$msgKey]);
@@ -113,8 +165,55 @@ class RequestOptimizer
             $stats['tokens_saved_est'] += $stats['messages_deduped'] * 200;
         }
 
-        // 8. Enforce max_tokens by task tier (most impactful on output tokens)
-        [$payload, $stats['max_tokens_set']] = $this->enforceMaxTokens($payload, $msgKey);
+        // ═════════════════════════════════════════════════════════════════════
+        // STEP 8: max_tokens Enforcement by task tier
+        // ═════════════════════════════════════════════════════════════════════
+        [$payload, $stats['max_tokens_set'], $stats['max_tokens_tier']] = $this->enforceMaxTokens($payload, $msgKey);
+
+        // ═════════════════════════════════════════════════════════════════════
+        // STEP 9: Base64 image stripping from old messages
+        //   Vision requests embed huge base64 blobs in history — useless
+        //   for follow-up turns. Replace with tiny placeholder.
+        // ═════════════════════════════════════════════════════════════════════
+        if ($msgKey) {
+            [$payload[$msgKey], $stats['base64_stripped']] = $this->stripBase64Images($payload[$msgKey]);
+            $stats['tokens_saved_est'] += $stats['base64_stripped'] * 5000;
+        }
+
+        // ═════════════════════════════════════════════════════════════════════
+        // STEP 10: Trim old assistant responses in history
+        //   Only the last assistant message needs full content.
+        //   Earlier ones are context — first 200 chars suffice.
+        // ═════════════════════════════════════════════════════════════════════
+        if ($msgKey) {
+            [$payload[$msgKey], $stats['assistant_trimmed']] = $this->trimOldAssistantMessages($payload[$msgKey]);
+            $stats['tokens_saved_est'] += $stats['assistant_trimmed'] * 300;
+        }
+
+        // ═════════════════════════════════════════════════════════════════════
+        // STEP 11: Remove empty/whitespace-only content blocks
+        // ═════════════════════════════════════════════════════════════════════
+        if ($msgKey) {
+            [$payload[$msgKey], $stats['empty_removed']] = $this->removeEmptyBlocks($payload[$msgKey]);
+        }
+
+        // ═════════════════════════════════════════════════════════════════════
+        // STEP 12: Google systemInstruction slim
+        //   Google Gemini uses a separate 'system_instruction' field.
+        // ═════════════════════════════════════════════════════════════════════
+        if (!empty($payload['system_instruction'])) {
+            [$payload['system_instruction'], $stats['google_sys_trimmed']] = $this->slimSystem($payload['system_instruction']);
+        }
+
+        // ── Measure AFTER and compute real savings ───────────────────────────
+        if ($msgKey) {
+            $stats['messages_after'] = count($payload[$msgKey]);
+        }
+        $inputAfter = strlen(json_encode($payload, JSON_UNESCAPED_UNICODE));
+        $stats['input_bytes_after'] = $inputAfter;
+        $stats['savings_pct'] = $inputBefore > 0
+            ? round(100 * (1 - $inputAfter / $inputBefore), 1)
+            : 0;
 
         return [$payload, $stats];
     }
@@ -123,19 +222,72 @@ class RequestOptimizer
 
     private function slimSystem(mixed $system): array
     {
-        if (is_string($system) && strlen($system) > self::MAX_SYSTEM_LEN) {
-            // Keep first MAX_SYSTEM_LEN chars — the rest is usually redundant context
-            return [substr($system, 0, self::MAX_SYSTEM_LEN) . '…[trimmed]', true];
+        if (is_string($system)) {
+            if (strlen($system) <= self::MAX_SYSTEM_LEN) {
+                return [$system, false];
+            }
+            return [$this->smartTruncate($system, self::MAX_SYSTEM_LEN), true];
         }
+
         if (is_array($system)) {
+            $changed = false;
+            $totalLen = 0;
             foreach ($system as &$block) {
-                if (($block['type'] ?? '') === 'text' && strlen($block['text'] ?? '') > self::MAX_SYSTEM_LEN) {
-                    $block['text'] = substr($block['text'], 0, self::MAX_SYSTEM_LEN) . '…[trimmed]';
-                    return [$system, true];
+                if (($block['type'] ?? '') === 'text' && is_string($block['text'] ?? null)) {
+                    $totalLen += strlen($block['text']);
                 }
             }
+            unset($block);
+
+            if ($totalLen <= self::MAX_SYSTEM_LEN) {
+                return [$system, false];
+            }
+
+            // Proportionally trim each text block
+            foreach ($system as &$block) {
+                if (($block['type'] ?? '') === 'text' && strlen($block['text'] ?? '') > 100) {
+                    $share = (int)(self::MAX_SYSTEM_LEN * strlen($block['text']) / max(1, $totalLen));
+                    $share = max(80, $share);
+                    if (strlen($block['text']) > $share) {
+                        $block['text'] = $this->smartTruncate($block['text'], $share);
+                        $changed = true;
+                    }
+                }
+            }
+            unset($block);
+            return [$system, $changed];
         }
+
         return [$system, false];
+    }
+
+    /**
+     * Smart truncation: keep first half + last quarter to preserve
+     * core instructions + recent context markers.
+     */
+    private function smartTruncate(string $text, int $limit): string
+    {
+        $firstHalf  = (int)($limit * 0.65);
+        $lastQuarter = $limit - $firstHalf - 30; // 30 chars for marker
+        if ($lastQuarter < 20) $lastQuarter = 20;
+
+        $head = substr($text, 0, $firstHalf);
+        $tail = substr($text, -$lastQuarter);
+
+        return $head . "\n[…trimmed " . (strlen($text) - $limit) . " chars…]\n" . $tail;
+    }
+
+    private function measureSystem(mixed $system): int
+    {
+        if (is_string($system)) return strlen($system);
+        if (is_array($system)) {
+            $len = 0;
+            foreach ($system as $b) {
+                $len += strlen($b['text'] ?? '');
+            }
+            return $len;
+        }
+        return 0;
     }
 
     // ─── 2. Inject concision directive ───────────────────────────────────────
@@ -166,11 +318,12 @@ class RequestOptimizer
                     break;
                 }
             }
+            unset($msg);
             if (!$injected) {
-                array_unshift($payload['messages'], ['role' => 'system', 'content' => $d]);
+                array_unshift($payload['messages'], ['role' => 'system', 'content' => trim($d)]);
             }
         } else {
-            $payload['system'] = $d;
+            $payload['system'] = trim($d);
         }
 
         return $payload;
@@ -182,59 +335,93 @@ class RequestOptimizer
     {
         $trimmed = 0;
 
-        // Hard limit
+        // Hard limit: keep only MAX_TOOLS
         if (count($tools) > self::MAX_TOOLS) {
             $trimmed = count($tools) - self::MAX_TOOLS;
             $tools   = array_slice($tools, 0, self::MAX_TOOLS);
         }
 
         foreach ($tools as &$tool) {
-            // Anthropic format
+            // ── Anthropic format: {name, description, input_schema}
             if (isset($tool['description'])) {
                 $tool['description'] = $this->trimStr($tool['description'], self::MAX_TOOL_DESC_LEN);
             }
-            // OpenAI format: {type:"function", function:{name, description, parameters}}
+
+            // ── OpenAI format: {type:"function", function:{name, description, parameters}}
             if (isset($tool['function']['description'])) {
                 $tool['function']['description'] = $this->trimStr($tool['function']['description'], self::MAX_TOOL_DESC_LEN);
             }
-            // Remove all non-essential schema fields (Anthropic: input_schema / OpenAI: parameters)
+
+            // ── Strip non-essential schema fields recursively
             foreach (['input_schema', 'parameters'] as $schemaKey) {
-                if (!isset($tool[$schemaKey]) && isset($tool['function'][$schemaKey])) {
-                    $schemaTarget = &$tool['function'][$schemaKey];
-                } elseif (isset($tool[$schemaKey])) {
-                    $schemaTarget = &$tool[$schemaKey];
-                } else {
-                    continue;
+                $target = null;
+                if (isset($tool[$schemaKey])) {
+                    $target = &$tool[$schemaKey];
+                } elseif (isset($tool['function'][$schemaKey])) {
+                    $target = &$tool['function'][$schemaKey];
                 }
-                unset(
-                    $schemaTarget['examples'],
-                    $schemaTarget['$defs'],
-                    $schemaTarget['$schema'],
-                    $schemaTarget['title'],
-                    $schemaTarget['additionalProperties']
-                );
-                if (isset($schemaTarget['properties'])) {
-                    foreach ($schemaTarget['properties'] as &$prop) {
-                        if (isset($prop['description'])) {
-                            $prop['description'] = $this->trimStr($prop['description'], 30);
+
+                if ($target !== null && is_array($target)) {
+                    $this->stripSchemaRecursive($target);
+                    // Trim property descriptions
+                    if (isset($target['properties'])) {
+                        foreach ($target['properties'] as &$prop) {
+                            if (isset($prop['description'])) {
+                                $prop['description'] = $this->trimStr($prop['description'], self::MAX_PROP_DESC_LEN);
+                            }
                         }
-                        unset($prop['examples'], $prop['default'], $prop['enum'],
-                              $prop['title'], $prop['$ref'], $prop['additionalProperties']);
+                        unset($prop);
                     }
                 }
-                unset($schemaTarget);
+                unset($target);
             }
-            // Google format
+
+            // ── Google format: {functionDeclarations: [{name, description, parameters}]}
             if (isset($tool['functionDeclarations'])) {
+                // Limit function declarations too
+                if (count($tool['functionDeclarations']) > self::MAX_TOOLS) {
+                    $trimmed += count($tool['functionDeclarations']) - self::MAX_TOOLS;
+                    $tool['functionDeclarations'] = array_slice($tool['functionDeclarations'], 0, self::MAX_TOOLS);
+                }
                 foreach ($tool['functionDeclarations'] as &$fn) {
                     if (isset($fn['description'])) {
                         $fn['description'] = $this->trimStr($fn['description'], self::MAX_TOOL_DESC_LEN);
                     }
+                    if (isset($fn['parameters']) && is_array($fn['parameters'])) {
+                        $this->stripSchemaRecursive($fn['parameters']);
+                    }
                 }
+                unset($fn);
             }
         }
+        unset($tool);
 
         return [$tools, $trimmed];
+    }
+
+    /**
+     * Recursively remove bloat keys from JSON Schema objects.
+     */
+    private function stripSchemaRecursive(array &$schema): void
+    {
+        foreach (self::STRIP_SCHEMA_KEYS as $key) {
+            unset($schema[$key]);
+        }
+
+        // Recurse into properties
+        if (isset($schema['properties']) && is_array($schema['properties'])) {
+            foreach ($schema['properties'] as &$prop) {
+                if (is_array($prop)) {
+                    $this->stripSchemaRecursive($prop);
+                }
+            }
+            unset($prop);
+        }
+
+        // Recurse into items (array schemas)
+        if (isset($schema['items']) && is_array($schema['items'])) {
+            $this->stripSchemaRecursive($schema['items']);
+        }
     }
 
     // ─── 4. Truncate tool results ────────────────────────────────────────────
@@ -245,8 +432,9 @@ class RequestOptimizer
 
         foreach ($messages as &$msg) {
             $content = $msg['content'] ?? $msg['parts'] ?? null;
+
+            // OpenAI: role=tool with plain string content
             if (!is_array($content)) {
-                // OpenAI role=tool — plain string content under role=tool
                 if (($msg['role'] ?? '') === 'tool' && is_string($msg['content'] ?? null)) {
                     [$msg['content'], $didTruncate] = $this->truncLines($msg['content'], self::MAX_TOOL_RESULT_LINES);
                     if ($didTruncate) $truncated++;
@@ -267,17 +455,23 @@ class RequestOptimizer
                                 if ($didTruncate) $truncated++;
                             }
                         }
+                        unset($inner);
                     }
                 }
+
                 // Google: functionResponse
                 if (isset($block['functionResponse']['response'])) {
                     $encoded = json_encode($block['functionResponse']['response']);
-                    if (substr_count($encoded, "\n") > self::MAX_TOOL_RESULT_LINES) {
-                        $block['functionResponse']['response'] = ['_truncated' => true, '_note' => 'Capped by token optimizer'];
+                    if (substr_count($encoded, "\n") > self::MAX_TOOL_RESULT_LINES || strlen($encoded) > 20000) {
+                        $block['functionResponse']['response'] = [
+                            '_truncated' => true,
+                            '_summary'   => substr($encoded, 0, 500) . '…',
+                        ];
                         $truncated++;
                     }
                 }
             }
+            unset($block);
 
             if (isset($msg['content']) && is_array($msg['content'])) {
                 $msg['content'] = $content;
@@ -285,11 +479,12 @@ class RequestOptimizer
                 $msg['parts'] = $content;
             }
         }
+        unset($msg);
 
         return [$messages, $truncated];
     }
 
-    // ─── 5. Compress user messages (filler removal) ───────────────────────────
+    // ─── 5. Compress user messages (filler removal) ──────────────────────────
 
     private function compressUserMessages(array $messages): array
     {
@@ -297,6 +492,7 @@ class RequestOptimizer
 
         foreach ($messages as &$msg) {
             if (($msg['role'] ?? '') !== 'user') continue;
+
             // OpenAI: content can be array of {type,text} parts
             if (is_array($msg['content'] ?? null)) {
                 foreach ($msg['content'] as &$part) {
@@ -304,9 +500,13 @@ class RequestOptimizer
                         $orig = $part['text'];
                         $c = preg_replace(self::FILLERS, '', $orig);
                         $c = trim(preg_replace('/\s{2,}/', ' ', $c ?? $orig));
-                        if ($c !== $orig && strlen($c) > 10) { $part['text'] = $c; $removed++; }
+                        if ($c !== $orig && strlen($c) > 10) {
+                            $part['text'] = $c;
+                            $removed++;
+                        }
                     }
                 }
+                unset($part);
                 continue;
             }
             if (!is_string($msg['content'] ?? null)) continue;
@@ -321,6 +521,7 @@ class RequestOptimizer
                 $removed++;
             }
         }
+        unset($msg);
 
         return [$messages, $removed];
     }
@@ -388,15 +589,18 @@ class RequestOptimizer
 
         $cap = self::MAX_TOKENS[$tier];
 
-        // Always enforce — never let the client override the cap upward
-        // OpenAI uses max_completion_tokens OR max_tokens
+        // Enforce: cap upward but don't override if already lower
         if (isset($payload['max_completion_tokens'])) {
-            $payload['max_completion_tokens'] = $cap;
+            if (!$payload['max_completion_tokens'] || $payload['max_completion_tokens'] > $cap) {
+                $payload['max_completion_tokens'] = $cap;
+            }
         } else {
-            $payload['max_tokens'] = $cap;
+            if (!isset($payload['max_tokens']) || $payload['max_tokens'] > $cap) {
+                $payload['max_tokens'] = $cap;
+            }
         }
 
-        return [$payload, $cap];
+        return [$payload, $cap, $tier];
     }
 
     // ─── Helpers ─────────────────────────────────────────────────────────────
@@ -414,9 +618,141 @@ class RequestOptimizer
         }
         $removed = count($lines) - $maxLines;
         return [
-            implode("\n", array_slice($lines, 0, $maxLines)) . "\n[…{$removed} lines removed]",
+            implode("\n", array_slice($lines, 0, $maxLines)) . "\n[…{$removed} lines removed by AI Token Optimizer]",
             true,
         ];
+    }
+
+    // ─── 9. Strip base64 images from old messages ────────────────────────────
+
+    private function stripBase64Images(array $messages): array
+    {
+        $stripped = 0;
+        $count    = count($messages);
+
+        // Keep images only in the LAST user message — strip from everything else
+        foreach ($messages as $idx => &$msg) {
+            if ($idx >= $count - 1) break; // skip last message
+
+            $content = $msg['content'] ?? null;
+            if (!is_array($content)) {
+                // Check for inline base64 in string content
+                if (is_string($content) && preg_match('/data:[^;]+;base64,[A-Za-z0-9+\/=]{500,}/', $content)) {
+                    $msg['content'] = preg_replace('/data:[^;]+;base64,[A-Za-z0-9+\/=]+/', self::BASE64_PLACEHOLDER, $content);
+                    $stripped++;
+                }
+                continue;
+            }
+
+            foreach ($content as &$block) {
+                // Anthropic: {type:"image", source:{type:"base64", data:"..."}}
+                if (($block['type'] ?? '') === 'image' && isset($block['source']['data'])) {
+                    $block['source']['data'] = self::BASE64_PLACEHOLDER;
+                    $stripped++;
+                }
+                // OpenAI: {type:"image_url", image_url:{url:"data:image/...;base64,..."}}
+                if (($block['type'] ?? '') === 'image_url' && isset($block['image_url']['url'])) {
+                    $url = $block['image_url']['url'];
+                    if (str_contains($url, 'base64,') && strlen($url) > 500) {
+                        $block['image_url']['url'] = self::BASE64_PLACEHOLDER;
+                        $stripped++;
+                    }
+                }
+                // Google: {inlineData: {mimeType, data}}
+                if (isset($block['inlineData']['data']) && strlen($block['inlineData']['data']) > 500) {
+                    $block['inlineData']['data'] = self::BASE64_PLACEHOLDER;
+                    $stripped++;
+                }
+            }
+            unset($block);
+
+            if (isset($msg['content']) && is_array($msg['content'])) {
+                $msg['content'] = $content;
+            }
+        }
+        unset($msg);
+
+        return [$messages, $stripped];
+    }
+
+    // ─── 10. Trim old assistant responses ────────────────────────────────────
+
+    private function trimOldAssistantMessages(array $messages): array
+    {
+        $trimmed = 0;
+        $count   = count($messages);
+
+        // Find last assistant index
+        $lastAssistantIdx = -1;
+        for ($i = $count - 1; $i >= 0; $i--) {
+            if (($messages[$i]['role'] ?? '') === 'assistant') {
+                $lastAssistantIdx = $i;
+                break;
+            }
+        }
+
+        foreach ($messages as $idx => &$msg) {
+            if (($msg['role'] ?? '') !== 'assistant') continue;
+            if ($idx === $lastAssistantIdx) continue; // keep last one intact
+
+            if (is_string($msg['content'] ?? null) && strlen($msg['content']) > self::MAX_ASSISTANT_HIST_LEN) {
+                $msg['content'] = substr($msg['content'], 0, self::MAX_ASSISTANT_HIST_LEN) . '…[trimmed]';
+                $trimmed++;
+            } elseif (is_array($msg['content'] ?? null)) {
+                // Anthropic: array of blocks — trim text blocks, remove tool_use blocks
+                $newContent = [];
+                foreach ($msg['content'] as $block) {
+                    if (($block['type'] ?? '') === 'text' && strlen($block['text'] ?? '') > self::MAX_ASSISTANT_HIST_LEN) {
+                        $block['text'] = substr($block['text'], 0, self::MAX_ASSISTANT_HIST_LEN) . '…[trimmed]';
+                        $newContent[] = $block;
+                        $trimmed++;
+                    } elseif (($block['type'] ?? '') === 'tool_use') {
+                        // Keep tool_use but strip input to avoid orphan tool_result errors
+                        $block['input'] = (object)[];
+                        $newContent[] = $block;
+                    } else {
+                        $newContent[] = $block;
+                    }
+                }
+                $msg['content'] = $newContent;
+            }
+        }
+        unset($msg);
+
+        return [$messages, $trimmed];
+    }
+
+    // ─── 11. Remove empty/whitespace blocks ──────────────────────────────────
+
+    private function removeEmptyBlocks(array $messages): array
+    {
+        $removed = 0;
+
+        foreach ($messages as &$msg) {
+            if (!is_array($msg['content'] ?? null)) {
+                // Remove whitespace-only string messages (but not role=tool which can be empty)
+                if (is_string($msg['content'] ?? null) && trim($msg['content']) === '' && ($msg['role'] ?? '') !== 'tool') {
+                    $msg['content'] = '[empty]';
+                    $removed++;
+                }
+                continue;
+            }
+
+            $filtered = [];
+            foreach ($msg['content'] as $block) {
+                if (($block['type'] ?? '') === 'text' && trim($block['text'] ?? '') === '') {
+                    $removed++;
+                    continue;
+                }
+                $filtered[] = $block;
+            }
+            if (count($filtered) < count($msg['content'])) {
+                $msg['content'] = $filtered ?: [['type' => 'text', 'text' => '[empty]']];
+            }
+        }
+        unset($msg);
+
+        return [$messages, $removed];
     }
 
     // ─── Stats logger ─────────────────────────────────────────────────────────
@@ -428,9 +764,15 @@ class RequestOptimizer
             ? (json_decode(file_get_contents($logFile), true) ?? [])
             : [];
 
-        array_unshift($existing, array_merge($stats, ['timestamp' => date('Y-m-d H:i:s')]));
+        array_unshift($existing, array_merge($stats, [
+            'timestamp' => date('Y-m-d H:i:s'),
+        ]));
         $existing = array_slice($existing, 0, 200);
 
-        @file_put_contents($logFile, json_encode($existing, JSON_PRETTY_PRINT));
+        @file_put_contents(
+            $logFile,
+            json_encode($existing, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE),
+            LOCK_EX
+        );
     }
 }

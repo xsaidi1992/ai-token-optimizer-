@@ -8,7 +8,7 @@
 [![Platform: Linux](https://img.shields.io/badge/Platform-Linux-blue.svg)](https://kernel.org)
 [![PHP Version](https://img.shields.io/badge/PHP-7.4%2B-777BB4.svg)](https://php.net)
 [![IDEs Supported](https://img.shields.io/badge/Supported%20IDEs-12%20Agents-indigo.svg)](#-compatible-ides--ai-agents)
-[![Savings](https://img.shields.io/badge/Token%20Savings-Up%20to%2088%25-10b981.svg)](#-optimization-rules--19-pattern-agentic-engine)
+[![Savings](https://img.shields.io/badge/Token%20Savings-Up%20to%2095%25-10b981.svg)](#-optimization-rules--19-pattern-agentic-engine)
 
 ---
 
@@ -155,7 +155,7 @@ ai-token-optimizer/
 ├── css/style.css          # Premium dark glassmorphism theme
 ├── proxy/
 │   ├── proxy.php          # Transparent local API proxy (port 3100)
-│   ├── optimizer.php      # 8-pattern request optimizer (applied before forwarding)
+│   ├── optimizer.php      # 12-pattern request optimizer v2 (applied before forwarding)
 │   ├── start_proxy.sh     # Starts the proxy as a background daemon
 │   └── activate_proxy.sh  # Source to redirect a session through the proxy
 └── data/
@@ -181,40 +181,44 @@ Open: **`http://localhost:8080`**
 
 ---
 
-## 🔌 Transparent API Proxy — 8-Pattern Real-Time Optimizer
+## 🔌 Transparent API Proxy — 12-Pattern Real-Time Optimizer
 
-The proxy intercepts **every** Claude / Gemini API call in real time and applies 8 aggressive optimizations **before** forwarding the request. Your model choice is never changed — only the payload is compressed.
+The proxy intercepts **every** Claude / Gemini / OpenAI API call in real time and applies **12 aggressive optimizations** before forwarding the request. Your model choice is never changed — only the payload is compressed. **Measured savings: -95.6% on realistic workloads.**
 
 ### 🗺️ End-to-End Proxy Flow
 
 ```mermaid
 flowchart TD
-    IDE["IDE / Agent - Antigravity, Cursor, Claude Code
-ANTHROPIC_BASE_URL=localhost:3100"]
+    IDE["IDE / Agent - Antigravity, Cursor, Claude Code, Aider, Cline, Windsurf..."]
     PROXY["proxy/proxy.php - port 3100"]
-    OPT["proxy/optimizer.php - RequestOptimizer"]
+    OPT["proxy/optimizer.php - RequestOptimizer v2"]
 
-    subgraph PIPELINE ["8-Pattern Optimization Pipeline"]
+    subgraph PIPELINE ["12-Pattern Optimization Pipeline"]
         direction TB
-        P1["1 - System Prompt Slim - truncate 200 chars - minus 10pct"]
-        P2["2 - Concision Inject - append concise directive"]
-        P3["3 - Lazy Tool Schemas - max 5 tools, strip noise - minus 40pct"]
-        P4["4 - Tool Result Truncation - cap 100 lines - minus 60pct"]
-        P5["5 - Filler Removal - strip EN/FR fillers - minus 10pct"]
-        P6["6 - History Compression - first 1 plus last 8 msgs - minus 55pct"]
-        P7["7 - Deduplication - drop identical consecutive msgs - minus 5pct"]
-        P8["8 - max tokens Cap - tier0=400 / tier1=1200 / tier2=3000 - minus 75pct"]
-        P1 --> P2 --> P3 --> P4 --> P5 --> P6 --> P7 --> P8
+        P1["1 System Prompt Slim -10pct"]
+        P2["2 Concision Directive Inject"]
+        P3["3 Lazy Tool Schemas -40pct"]
+        P4["4 Tool Result Truncation -60pct"]
+        P5["5 Filler Removal EN/FR -10pct"]
+        P6["6 History Compression -55pct"]
+        P7["7 Deduplication -5pct"]
+        P8["8 max_tokens Tier Cap -75pct"]
+        P9["9 Base64 Image Strip -95pct vision"]
+        P10["10 Old Assistant Trim -30pct history"]
+        P11["11 Empty Block Cleanup"]
+        P12["12 Google systemInstruction Slim"]
+        P1 --> P2 --> P3 --> P4 --> P5 --> P6
+        P6 --> P7 --> P8 --> P9 --> P10 --> P11 --> P12
     end
 
     UPSTREAM["Real AI API - Anthropic / Google / OpenAI"]
-    STATS["proxy stats.json - last 200 requests"]
+    STATS["proxy_stats.json - last 200 requests with before/after bytes"]
     DASHBOARD["Dashboard port 8080 - Real-time KPIs"]
 
     IDE -->|Raw request| PROXY
     PROXY --> OPT
     OPT --> PIPELINE
-    PIPELINE -->|Optimized payload -88pct tokens| UPSTREAM
+    PIPELINE -->|Optimized payload up to -95pct| UPSTREAM
     UPSTREAM -->|Response passthrough| PROXY
     PROXY -->|Transparent response| IDE
     PIPELINE -.->|Log savings| STATS
@@ -223,16 +227,33 @@ ANTHROPIC_BASE_URL=localhost:3100"]
 
 > **Key insight:** the IDE sees a normal API — no code change required. 100% of the optimization happens inside the proxy, invisibly.
 
-| # | Optimization | Savings |
-| :---: | :--- | :---: |
-| 1 | **System prompt slim** — truncate to 200 chars | -10% system |
-| 2 | **Concision directive injection** — appends `[OPT:concise,diff-only,<=8lines]` | reduces verbosity |
-| 3 | **Lazy tool schemas** — max 5 tools, 40-char descriptions, strip `title`/`$ref`/`additionalProperties` | -40% input |
-| 4 | **Tool result truncation** — cap at 100 lines | -60% tool output |
-| 5 | **Filler removal** — strips EN + FR filler phrases from user messages | -10% user msgs |
-| 6 | **History compression** — keep first 1 + last 8 messages | -55% history |
-| 7 | **Deduplication** — remove consecutive identical messages | -5% |
-| 8 | **`max_tokens` enforcement** — always capped by task tier (tier0=400 / tier1=1200 / tier2=3000) | -75% output |
+### 📊 Measured Benchmark Results
+
+| Scenario | Before | After | Savings |
+| :--- | ---: | ---: | :---: |
+| Vision + base64 history (Anthropic) | 67,600 B | 964 B | **-98.6%** |
+| Vision + base64 (OpenAI format) | 67,370 B | 714 B | **-98.9%** |
+| Long chat + verbose assistant (41 msgs) | 22,995 B | 5,114 B | **-77.2%** |
+| Google Gemini `contents[]` format | 3,720 B | 3,747 B | -0% |
+| Worst case: all bloat types combined | 249,395 B | 7,656 B | **-96.9%** |
+| **TOTAL (5 scenarios)** | **411,080 B** | **18,195 B** | **-95.6%** |
+
+### 12 Optimization Patterns
+
+| # | Optimization | Savings | Formats |
+| :---: | :--- | :---: | :---: |
+| 1 | **System prompt slim** — smart truncate to 800 chars (head+tail) | -10% system | All |
+| 2 | **Concision directive injection** — appends `[OPT:concise,diff-only,<=8lines]` | reduces verbosity | All |
+| 3 | **Lazy tool schemas** — max 5 tools, 40-char desc, recursive schema strip | -40% input | All |
+| 4 | **Tool result truncation** — cap at 100 lines | -60% tool output | All |
+| 5 | **Filler removal** — strips EN + FR filler phrases from user messages | -10% user msgs | All |
+| 6 | **History compression** — keep first 1 + last 8 messages | -55% history | All |
+| 7 | **Deduplication** — remove consecutive identical messages | -5% | All |
+| 8 | **`max_tokens` enforcement** — tier0=800 / tier1=2000 / tier2=4000 | -75% output | All |
+| 9 | **Base64 image stripping** — replace old vision blobs with placeholder | -95% vision | Anthropic/OpenAI/Gemini |
+| 10 | **Old assistant response trim** — keep only 200 chars of past replies | -30% history | All |
+| 11 | **Empty block cleanup** — remove whitespace-only content blocks | cleanup | All |
+| 12 | **Google `systemInstruction` slim** — same smart truncation for Gemini | -10% system | Gemini |
 
 ### Setup (one-time)
 

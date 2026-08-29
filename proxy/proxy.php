@@ -1,10 +1,14 @@
 <?php
 /**
  * AI Token Optimizer — Local API Proxy (port 3100)
- * Intercepts ALL Claude/Gemini API calls and applies real token optimizations
- * before forwarding to the real API endpoint.
+ * Intercepts ALL Claude/Gemini/OpenAI API calls and applies 8 real token
+ * optimizations before forwarding to the real API endpoint.
  *
  * Setup: export ANTHROPIC_BASE_URL=http://localhost:3100
+ *
+ * ═══════════════════════════════════════════════════════════════════════
+ * PRODUCTION-GRADE: CORS, real savings logging, streaming passthrough
+ * ═══════════════════════════════════════════════════════════════════════
  */
 
 require_once __DIR__ . '/optimizer.php';
@@ -12,18 +16,41 @@ require_once __DIR__ . '/optimizer.php';
 $uri    = $_SERVER['REQUEST_URI'] ?? '/';
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
+// ── CORS — required for browser-based SDKs and dashboard ────────────────────
+header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS');
+header('Access-Control-Allow-Headers: *');
+header('Access-Control-Expose-Headers: X-Token-Opt-Saved, X-Token-Opt-Savings-Pct, X-Token-Opt-Tools-Trimmed, X-Token-Opt-Tier');
+
+if ($method === 'OPTIONS') {
+    http_response_code(204);
+    exit;
+}
+
 // ── Health check ────────────────────────────────────────────────────────────
 if ($uri === '/health' || $uri === '/') {
     header('Content-Type: application/json');
     $statsFile = __DIR__ . '/../data/proxy_stats.json';
-    $stats = file_exists($statsFile) ? json_decode(file_get_contents($statsFile), true) : [];
-    $saved = array_sum(array_column($stats, 'tokens_saved_est'));
+    $allStats = file_exists($statsFile) ? json_decode(file_get_contents($statsFile), true) : [];
+
+    $totalSaved     = array_sum(array_column($allStats, 'tokens_saved_est'));
+    $savingsPcts    = array_filter(array_column($allStats, 'savings_pct'));
+    $avgSavings     = count($savingsPcts) > 0 ? round(array_sum($savingsPcts) / count($savingsPcts), 1) : 0;
+    $totalBefore    = array_sum(array_column($allStats, 'input_bytes_before'));
+    $totalAfter     = array_sum(array_column($allStats, 'input_bytes_after'));
+    $realSavingsPct = $totalBefore > 0 ? round(100 * (1 - $totalAfter / $totalBefore), 1) : 0;
+
     echo json_encode([
-        'status'          => 'ok',
-        'proxy'           => 'AI Token Optimizer Proxy v1.0',
-        'port'            => 3100,
-        'requests_logged' => count($stats),
-        'tokens_saved'    => $saved,
+        'status'             => 'ok',
+        'proxy'              => 'AI Token Optimizer Proxy v2.0',
+        'port'               => 3100,
+        'requests_logged'    => count($allStats),
+        'tokens_saved_est'   => $totalSaved,
+        'avg_savings_pct'    => $avgSavings,
+        'real_savings_pct'   => $realSavingsPct,
+        'total_bytes_before' => $totalBefore,
+        'total_bytes_after'  => $totalAfter,
+        'optimizations'      => 8,
     ]);
     exit;
 }
@@ -40,6 +67,13 @@ if ($rawBody !== '' && ($payload = json_decode($rawBody, true)) !== null) {
     [$payload, $stats] = $optimizer->optimize($payload, $uri);
     $rawBody = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     $optimizer->logStats($stats, $uri);
+
+    // Log to stderr for real-time monitoring in proxy.log
+    $savPct = $stats['savings_pct'] ?? 0;
+    $tier   = $stats['max_tokens_tier'] ?? '?';
+    $tools  = $stats['tools_trimmed'] ?? 0;
+    $msgs   = $stats['messages_compressed'] ?? 0;
+    error_log("[OPT] {$uri} | savings={$savPct}% | tier={$tier} | tools_trimmed={$tools} | msgs_compressed={$msgs} | before={$stats['input_bytes_before']}B after={$stats['input_bytes_after']}B");
 }
 
 // ── Determine upstream API ───────────────────────────────────────────────────
@@ -56,9 +90,9 @@ if (
     || str_contains($uri, '/v1/models')
 ) {
     // OpenAI-compatible: Cursor, Copilot, Aider, Cline, Codex, Windsurf, Zed, JetBrains
-    $upstreamBase = getenv('OPENAI_API_BASE') ?: 'https://api.openai.com';
+    $upstreamBase = getenv('REAL_OPENAI_BASE') ?: 'https://api.openai.com';
 } else {
-    // Default: Anthropic (Claude Code, claude CLI)
+    // Default: Anthropic (Claude Code, claude CLI, Antigravity)
     $upstreamBase = 'https://api.anthropic.com';
 }
 
@@ -85,8 +119,8 @@ $fwdHeaders[] = 'Content-Length: ' . strlen($rawBody);
 // ── Proxy with curl ───────────────────────────────────────────────────────────
 $ch = curl_init($upstreamUrl);
 curl_setopt_array($ch, [
-    CURLOPT_CUSTOMREQUEST => $method,
-    CURLOPT_HTTPHEADER    => $fwdHeaders,
+    CURLOPT_CUSTOMREQUEST  => $method,
+    CURLOPT_HTTPHEADER     => $fwdHeaders,
     CURLOPT_RETURNTRANSFER => !$isStreaming,
     CURLOPT_FOLLOWLOCATION => false,
     CURLOPT_SSL_VERIFYPEER => true,
@@ -99,7 +133,7 @@ if (in_array($method, ['POST', 'PUT', 'PATCH'])) {
 
 if ($isStreaming) {
     // Stream SSE response directly to client
-    curl_setopt($ch, CURLOPT_HEADERFUNCTION, function ($ch, $header) {
+    curl_setopt($ch, CURLOPT_HEADERFUNCTION, function ($ch, $header) use ($stats) {
         $trimmed = trim($header);
         if ($trimmed && !str_starts_with($trimmed, 'HTTP/') && !str_starts_with($trimmed, 'Transfer-Encoding')) {
             if (!headers_sent()) {
@@ -108,7 +142,18 @@ if ($isStreaming) {
         }
         return strlen($header);
     });
-    curl_setopt($ch, CURLOPT_WRITEFUNCTION, function ($ch, $chunk) {
+
+    // Inject optimization headers before first data chunk
+    $headersSent = false;
+    curl_setopt($ch, CURLOPT_WRITEFUNCTION, function ($ch, $chunk) use ($stats, &$headersSent) {
+        if (!$headersSent) {
+            if (!headers_sent()) {
+                header('X-Token-Opt-Saved: ' . ($stats['tokens_saved_est'] ?? 0));
+                header('X-Token-Opt-Savings-Pct: ' . ($stats['savings_pct'] ?? 0));
+                header('X-Token-Opt-Tier: ' . ($stats['max_tokens_tier'] ?? 'unknown'));
+            }
+            $headersSent = true;
+        }
         echo $chunk;
         if (ob_get_level()) { ob_flush(); }
         flush();
@@ -124,10 +169,12 @@ if ($isStreaming) {
     if ($contentType) {
         header("Content-Type: $contentType");
     }
-    // Expose optimization stats in response header (for dashboard)
+    // Expose optimization stats in response headers
     if ($stats) {
         header('X-Token-Opt-Saved: ' . ($stats['tokens_saved_est'] ?? 0));
+        header('X-Token-Opt-Savings-Pct: ' . ($stats['savings_pct'] ?? 0));
         header('X-Token-Opt-Tools-Trimmed: ' . ($stats['tools_trimmed'] ?? 0));
+        header('X-Token-Opt-Tier: ' . ($stats['max_tokens_tier'] ?? 'unknown'));
     }
     echo $response;
 }

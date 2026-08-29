@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1400">
+<title>AI Token Optimizer — Proxy Architecture</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&family=JetBrains+Mono:wght@400;700&display=swap');
+
+  *{margin:0;padding:0;box-sizing:border-box}
+
+  body {
+    width: 1400px;
+    min-height: 820px;
+    background: #060a12;
+    font-family: 'Inter', sans-serif;
+    color: #e2e8f0;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* Animated grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(16,185,129,.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(16,185,129,.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+
+  /* Glow blobs */
+  .blob {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(100px);
+    opacity: .18;
+    pointer-events: none;
+  }
+  .blob1 { width:500px;height:500px;background:#10b981;top:-150px;left:-100px; }
+  .blob2 { width:400px;height:400px;background:#6366f1;bottom:-100px;right:-80px; }
+  .blob3 { width:300px;height:300px;background:#0ea5e9;top:50%;left:50%;transform:translate(-50%,-50%); }
+
+  .canvas {
+    position: relative;
+    width: 1400px;
+    padding: 36px 48px 40px;
+    z-index: 1;
+  }
+
+  /* TITLE */
+  .title-block { text-align: center; margin-bottom: 32px; }
+  .title-block h1 {
+    font-size: 28px;
+    font-weight: 900;
+    letter-spacing: -0.5px;
+    background: linear-gradient(135deg,#10b981,#6366f1,#0ea5e9);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .title-block p {
+    font-size: 13px;
+    color: #64748b;
+    margin-top: 4px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* MAIN LAYOUT: 3 columns */
+  .arch {
+    display: grid;
+    grid-template-columns: 240px 1fr 240px;
+    grid-template-rows: auto;
+    gap: 0 0;
+    align-items: center;
+  }
+
+  /* CARDS */
+  .card {
+    background: rgba(15,23,42,.7);
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 16px;
+    padding: 18px 20px;
+    backdrop-filter: blur(12px);
+    position: relative;
+  }
+  .card-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 10px;
+  }
+  .card-icon { font-size: 22px; margin-bottom: 6px; display: block; }
+
+  /* IDE card */
+  .card-ide { border-color: rgba(16,185,129,.3); box-shadow: 0 0 24px rgba(16,185,129,.12); }
+  .card-ide .card-title { color: #10b981; }
+  .ide-item {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 11px; color: #94a3b8;
+    padding: 4px 0;
+    border-bottom: 1px solid rgba(255,255,255,.04);
+  }
+  .ide-item:last-child { border-bottom: none; }
+  .ide-dot { width:6px;height:6px;border-radius:50%;background:#10b981;flex-shrink:0; }
+  .ide-dot.partial { background:#f59e0b; }
+  .ide-label { font-size: 10px; }
+
+  /* PROXY middle column */
+  .proxy-col {
+    padding: 0 32px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+  }
+
+  .proxy-header {
+    background: linear-gradient(135deg, rgba(99,102,241,.25), rgba(16,185,129,.15));
+    border: 1px solid rgba(99,102,241,.4);
+    border-radius: 14px;
+    padding: 14px 24px;
+    text-align: center;
+    width: 100%;
+    box-shadow: 0 0 32px rgba(99,102,241,.2);
+    margin-bottom: 12px;
+  }
+  .proxy-header .lbl { font-size: 10px; color: #818cf8; font-family: 'JetBrains Mono',monospace; }
+  .proxy-header .name { font-size: 16px; font-weight: 800; color: #fff; letter-spacing: -.3px; }
+  .proxy-header .port { font-size: 11px; color: #6366f1; font-family: 'JetBrains Mono',monospace; margin-top: 2px; }
+
+  /* optimizer box */
+  .optimizer-box {
+    background: rgba(15,23,42,.85);
+    border: 1px solid rgba(99,102,241,.25);
+    border-radius: 12px;
+    padding: 12px 20px;
+    text-align: center;
+    width: 100%;
+    margin-bottom: 10px;
+  }
+  .optimizer-box .opt-lbl { font-size: 10px; color: #64748b; font-family: 'JetBrains Mono',monospace; }
+  .optimizer-box .opt-name { font-size: 13px; font-weight: 700; color: #a5b4fc; }
+
+  /* PIPELINE */
+  .pipeline {
+    width: 100%;
+    background: rgba(10,15,28,.8);
+    border: 1px solid rgba(16,185,129,.2);
+    border-radius: 14px;
+    padding: 14px 16px;
+    box-shadow: inset 0 0 40px rgba(16,185,129,.04);
+  }
+  .pipeline-title {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: #10b981;
+    text-align: center;
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(16,185,129,.15);
+  }
+  .step {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 8px;
+    border-radius: 8px;
+    margin-bottom: 3px;
+    background: rgba(255,255,255,.02);
+    border: 1px solid rgba(255,255,255,.04);
+    transition: all .2s;
+  }
+  .step:last-child { margin-bottom: 0; }
+  .step-num {
+    width: 20px; height: 20px;
+    border-radius: 6px;
+    background: linear-gradient(135deg,#10b981,#059669);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 9px; font-weight: 800; color: #fff;
+    flex-shrink: 0;
+  }
+  .step-info { flex: 1; }
+  .step-name { font-size: 10px; font-weight: 600; color: #e2e8f0; }
+  .step-desc { font-size: 9px; color: #64748b; font-family: 'JetBrains Mono',monospace; }
+  .step-badge {
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: rgba(16,185,129,.15);
+    color: #10b981;
+    border: 1px solid rgba(16,185,129,.2);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  /* API card */
+  .card-api { border-color: rgba(14,165,233,.3); box-shadow: 0 0 24px rgba(14,165,233,.1); }
+  .card-api .card-title { color: #0ea5e9; }
+  .api-item {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 11px; color: #94a3b8;
+    padding: 5px 0;
+    border-bottom: 1px solid rgba(255,255,255,.04);
+  }
+  .api-item:last-child { border-bottom: none; }
+  .api-dot { width:8px;height:8px;border-radius:50%;flex-shrink:0; }
+
+  /* RIGHT col */
+  .right-col { display: flex; flex-direction: column; gap: 12px; }
+
+  .card-stats { border-color: rgba(245,158,11,.25); box-shadow: 0 0 20px rgba(245,158,11,.08); }
+  .card-stats .card-title { color: #f59e0b; }
+
+  .card-dash { border-color: rgba(139,92,246,.3); box-shadow: 0 0 20px rgba(139,92,246,.1); }
+  .card-dash .card-title { color: #a78bfa; }
+
+  .stat-row {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 10px; color: #64748b; padding: 3px 0;
+  }
+  .stat-val { font-family: 'JetBrains Mono',monospace; color: #10b981; font-weight: 700; font-size: 11px; }
+
+  /* ARROWS */
+  .flow-row {
+    display: grid;
+    grid-template-columns: 240px 1fr 240px;
+    align-items: center;
+    margin: 6px 0;
+    position: relative;
+  }
+
+  .arrow-label {
+    text-align: center;
+    font-size: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    padding: 0 32px;
+  }
+  .arrow-green { color: #10b981; }
+  .arrow-blue  { color: #0ea5e9; }
+  .arrow-gray  { color: #475569; }
+  .arrow-line {
+    height: 2px;
+    margin: 2px 0;
+    border-radius: 1px;
+    position: relative;
+  }
+  .arrow-line::after {
+    content: '▶';
+    position: absolute;
+    right: -6px;
+    top: -7px;
+    font-size: 10px;
+  }
+  .arrow-line.left::after { content: ''; }
+  .arrow-line.left::before {
+    content: '◀';
+    position: absolute;
+    left: -6px;
+    top: -7px;
+    font-size: 10px;
+  }
+  .arrow-bg-green { background: linear-gradient(90deg, #10b981, #059669); }
+  .arrow-bg-green::after { color: #059669; }
+  .arrow-bg-blue  { background: linear-gradient(90deg, #0ea5e9, #0284c7); }
+  .arrow-bg-blue.left::before { color: #0284c7; }
+  .arrow-bg-dashed {
+    background: repeating-linear-gradient(90deg,#6366f1 0,#6366f1 8px,transparent 8px,transparent 16px);
+  }
+  .arrow-bg-dashed::after { color: #6366f1; }
+
+  /* BOTTOM: savings bar */
+  .savings-bar {
+    margin-top: 20px;
+    background: rgba(15,23,42,.7);
+    border: 1px solid rgba(255,255,255,.06);
+    border-radius: 12px;
+    padding: 14px 24px;
+    display: flex;
+    gap: 0;
+    align-items: center;
+  }
+  .sav-item {
+    flex: 1;
+    text-align: center;
+    padding: 0 16px;
+    border-right: 1px solid rgba(255,255,255,.06);
+  }
+  .sav-item:last-child { border-right: none; }
+  .sav-val {
+    font-size: 22px;
+    font-weight: 900;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .sav-lbl { font-size: 10px; color: #64748b; margin-top: 2px; text-transform: uppercase; letter-spacing: 1px; }
+  .col-green { color: #10b981; }
+  .col-blue  { color: #0ea5e9; }
+  .col-purple{ color: #a78bfa; }
+  .col-amber { color: #f59e0b; }
+</style>
+</head>
+<body>
+<div class="blob blob1"></div>
+<div class="blob blob2"></div>
+<div class="blob blob3"></div>
+
+<div class="canvas">
+  <div class="title-block">
+    <h1>AI Token Optimizer — Transparent Proxy Architecture</h1>
+    <p>End-to-end 8-pattern optimization pipeline · port 3100 · up to -88% token cost</p>
+  </div>
+
+  <!-- MAIN ROW -->
+  <div class="arch">
+
+    <!-- LEFT: IDEs -->
+    <div class="card card-ide">
+      <span class="card-icon">🖥️</span>
+      <div class="card-title">IDE / Agents (12)</div>
+      <div class="ide-item"><span class="ide-dot"></span><span class="ide-label">Google Antigravity</span></div>
+      <div class="ide-item"><span class="ide-dot"></span><span class="ide-label">Claude Code CLI</span></div>
+      <div class="ide-item"><span class="ide-dot"></span><span class="ide-label">Cursor</span></div>
+      <div class="ide-item"><span class="ide-dot"></span><span class="ide-label">Aider</span></div>
+      <div class="ide-item"><span class="ide-dot"></span><span class="ide-label">Cline / Roo-Cline</span></div>
+      <div class="ide-item"><span class="ide-dot"></span><span class="ide-label">VS Code Copilot</span></div>
+      <div class="ide-item"><span class="ide-dot"></span><span class="ide-label">Windsurf</span></div>
+      <div class="ide-item"><span class="ide-dot"></span><span class="ide-label">Zed / JetBrains</span></div>
+      <div class="ide-item"><span class="ide-dot partial"></span><span class="ide-label">GitHub Copilot ⚠</span></div>
+      <div style="margin-top:10px;padding:8px 10px;background:rgba(16,185,129,.06);border-radius:8px;border:1px solid rgba(16,185,129,.15);">
+        <div style="font-size:9px;color:#64748b;font-family:'JetBrains Mono',monospace;">ANTHROPIC_BASE_URL=</div>
+        <div style="font-size:10px;color:#10b981;font-family:'JetBrains Mono',monospace;">http://localhost:3100</div>
+      </div>
+    </div>
+
+    <!-- CENTER: Proxy Pipeline -->
+    <div class="proxy-col">
+      <div class="proxy-header">
+        <div class="lbl">proxy/proxy.php</div>
+        <div class="name">AI Token Optimizer Proxy</div>
+        <div class="port">:3100 &nbsp;·&nbsp; PHP 7.4+</div>
+      </div>
+
+      <div class="optimizer-box">
+        <div class="opt-lbl">proxy/optimizer.php</div>
+        <div class="opt-name">RequestOptimizer</div>
+      </div>
+
+      <div class="pipeline">
+        <div class="pipeline-title">⚡ 8-Pattern Optimization Pipeline</div>
+
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-info">
+            <div class="step-name">System Prompt Slim</div>
+            <div class="step-desc">truncate to 200 chars</div>
+          </div>
+          <div class="step-badge">-10%</div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-info">
+            <div class="step-name">Concision Directive Inject</div>
+            <div class="step-desc">[OPT:concise,diff-only,&lt;=8lines]</div>
+          </div>
+          <div class="step-badge">verbosity</div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-info">
+            <div class="step-name">Lazy Tool Schemas</div>
+            <div class="step-desc">max 5 tools · strip $ref/title</div>
+          </div>
+          <div class="step-badge">-40%</div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-info">
+            <div class="step-name">Tool Result Truncation</div>
+            <div class="step-desc">cap at 100 lines</div>
+          </div>
+          <div class="step-badge">-60%</div>
+        </div>
+        <div class="step">
+          <div class="step-num">5</div>
+          <div class="step-info">
+            <div class="step-name">Filler Removal</div>
+            <div class="step-desc">strip EN/FR filler phrases</div>
+          </div>
+          <div class="step-badge">-10%</div>
+        </div>
+        <div class="step">
+          <div class="step-num">6</div>
+          <div class="step-info">
+            <div class="step-name">History Compression</div>
+            <div class="step-desc">keep first 1 + last 8 msgs</div>
+          </div>
+          <div class="step-badge">-55%</div>
+        </div>
+        <div class="step">
+          <div class="step-num">7</div>
+          <div class="step-info">
+            <div class="step-name">Deduplication</div>
+            <div class="step-desc">drop consecutive identical msgs</div>
+          </div>
+          <div class="step-badge">-5%</div>
+        </div>
+        <div class="step">
+          <div class="step-num">8</div>
+          <div class="step-info">
+            <div class="step-name">max_tokens Enforcement</div>
+            <div class="step-desc">tier0=400 · tier1=1200 · tier2=3000</div>
+          </div>
+          <div class="step-badge">-75%</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT -->
+    <div class="right-col">
+      <!-- API -->
+      <div class="card card-api">
+        <span class="card-icon">☁️</span>
+        <div class="card-title">Real AI APIs</div>
+        <div class="api-item"><span class="api-dot" style="background:#d946ef"></span>Anthropic Claude</div>
+        <div class="api-item"><span class="api-dot" style="background:#4285f4"></span>Google Gemini</div>
+        <div class="api-item"><span class="api-dot" style="background:#10a37f"></span>OpenAI GPT</div>
+        <div style="margin-top:8px;font-size:9px;color:#475569;font-family:'JetBrains Mono',monospace;">Model unchanged ·<br>only payload compressed</div>
+      </div>
+      <!-- Stats -->
+      <div class="card card-stats">
+        <div class="card-title">📊 proxy_stats.json</div>
+        <div class="stat-row"><span>Requests tracked</span><span class="stat-val">200</span></div>
+        <div class="stat-row"><span>Avg savings</span><span class="stat-val">73.4%</span></div>
+        <div class="stat-row"><span>Active rules</span><span class="stat-val">14</span></div>
+      </div>
+      <!-- Dashboard -->
+      <div class="card card-dash">
+        <div class="card-title">📈 Dashboard :8080</div>
+        <div style="font-size:10px;color:#94a3b8;">Real-time KPIs · Benchmarks</div>
+        <div style="margin-top:8px;font-size:9px;color:#6d28d9;font-family:'JetBrains Mono',monospace;">api.php /scan</div>
+        <div style="margin-top:6px;display:flex;gap:4px;">
+          <div style="flex:1;height:24px;background:linear-gradient(180deg,rgba(16,185,129,.6) 0%,rgba(16,185,129,.1) 100%);border-radius:4px 4px 0 0;"></div>
+          <div style="flex:1;height:18px;align-self:flex-end;background:linear-gradient(180deg,rgba(16,185,129,.4) 0%,rgba(16,185,129,.1) 100%);border-radius:4px 4px 0 0;"></div>
+          <div style="flex:1;height:30px;align-self:flex-end;background:linear-gradient(180deg,rgba(99,102,241,.7) 0%,rgba(99,102,241,.1) 100%);border-radius:4px 4px 0 0;"></div>
+          <div style="flex:1;height:22px;align-self:flex-end;background:linear-gradient(180deg,rgba(16,185,129,.5) 0%,rgba(16,185,129,.1) 100%);border-radius:4px 4px 0 0;"></div>
+          <div style="flex:1;height:35px;align-self:flex-end;background:linear-gradient(180deg,rgba(99,102,241,.8) 0%,rgba(99,102,241,.1) 100%);border-radius:4px 4px 0 0;"></div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /arch -->
+
+  <!-- SAVINGS BAR -->
+  <div class="savings-bar">
+    <div class="sav-item">
+      <div class="sav-val col-green">-88%</div>
+      <div class="sav-lbl">Max Token Savings</div>
+    </div>
+    <div class="sav-item">
+      <div class="sav-val col-blue">$0.07</div>
+      <div class="sav-lbl">Cost / 100k Tokens</div>
+    </div>
+    <div class="sav-item">
+      <div class="sav-val col-amber">+$0.19</div>
+      <div class="sav-lbl">Gain / 100k Tokens</div>
+    </div>
+    <div class="sav-item">
+      <div class="sav-val col-purple">8</div>
+      <div class="sav-lbl">Proxy Optimizations</div>
+    </div>
+    <div class="sav-item">
+      <div class="sav-val col-green">12</div>
+      <div class="sav-lbl">IDEs Covered</div>
+    </div>
+    <div class="sav-item">
+      <div class="sav-val col-blue">3100</div>
+      <div class="sav-lbl">Proxy Port</div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
