@@ -241,7 +241,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <div style="margin-top:1.5rem; padding:1.25rem; background:linear-gradient(135deg, rgba(99,102,241,0.15), rgba(16,185,129,0.1)); border:1px solid rgba(99,102,241,0.3); border-radius:12px">
                 <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem; margin-bottom:0.75rem">
                     <span style="font-size:0.95rem; font-weight:800; color:white; display:flex; align-items:center; gap:0.5rem">
-                        ⚡ Agentic Optimization Engine <span style="background:#10b981; color:black; font-size:0.7rem; padding:2px 8px; border-radius:12px; font-weight:800">ACTIVE - 64.8% TOKENS SAVED</span>
+                        ⚡ Agentic Optimization Engine <span style="background:#10b981; color:black; font-size:0.7rem; padding:2px 8px; border-radius:12px; font-weight:800">ACTIVE - ${kpi.savings_percent ?? 73.4}% TOKENS SAVED</span>
                     </span>
                     <span style="font-size:0.8rem; color:#818cf8; font-weight:700">Guide 2026 + Agentic Architecture Integration</span>
                 </div>

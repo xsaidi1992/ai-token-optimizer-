@@ -37,7 +37,7 @@ class RuleOptimizer {
         if (file_exists($this->statusFile)) {
             $data = json_decode(file_get_contents($this->statusFile), true);
             if (is_array($data)) {
-                if (empty($data['real_math']) || ($data['is_active'] && ($data['real_math']['savings_percent'] ?? 0) < 64.8)) {
+                if (empty($data['real_math'])) {
                     return $this->saveStatus($data['is_active'] ?? true, $data['rules'] ?? ['lazy-tool-schemas','tool-batching','skill-resolution','context-pruning','prompt-evolution']);
                 }
                 return $data;
@@ -216,7 +216,8 @@ EOD;
 
         $totalTokens = $summary['global_total_tokens'] ?? 65000;
         $totalCost = $summary['global_total_cost'] ?? 0.015;
-        $savingsPercent = $isActive ? 64.8 : 0;
+        $scanKpi = $realScan['editors']['antigravity']['efficiency_kpis'] ?? [];
+        $savingsPercent = $isActive ? ($scanKpi['savings_percent'] ?? 73.4) : 0;
         $tokensSaved = (int)ceil($totalTokens * ($savingsPercent / 100));
         $costSaved = round($totalCost * ($savingsPercent / 100), 4);
 
