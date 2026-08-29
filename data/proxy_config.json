@@ -2,18 +2,77 @@
     "proxy_enabled": true,
     "port": 3100,
     "patterns": {
-        "system_prompt_slim":       { "enabled": true, "label": "System Prompt Slim",           "max_len": 800,  "savings": "-10% system" },
-        "concision_directive":      { "enabled": true, "label": "Concision Directive Inject",   "directive": "[OPT:concise,diff-only,<=8lines]", "savings": "reduces verbosity" },
-        "lazy_tool_schemas":        { "enabled": true, "label": "Lazy Tool Schemas",            "max_tools": 5, "max_desc": 40, "savings": "-40% input" },
-        "tool_result_truncation":   { "enabled": true, "label": "Tool Result Truncation",       "max_lines": 100, "savings": "-60% tool output" },
-        "filler_removal":           { "enabled": true, "label": "Filler Removal (EN/FR)",       "savings": "-10% user msgs" },
-        "history_compression":      { "enabled": true, "label": "History Compression",          "keep_first": 1, "keep_last": 8, "savings": "-55% history" },
-        "deduplication":            { "enabled": true, "label": "Deduplication",                "savings": "-5%" },
-        "max_tokens_enforcement":   { "enabled": true, "label": "max_tokens Tier Cap",          "tier0": 800, "tier1": 2000, "tier2": 4000, "savings": "-75% output" },
-        "base64_image_strip":       { "enabled": true, "label": "Base64 Image Strip",           "savings": "-95% vision" },
-        "assistant_response_trim":  { "enabled": true, "label": "Old Assistant Trim",           "max_len": 200, "savings": "-30% history" },
-        "empty_block_cleanup":      { "enabled": true, "label": "Empty Block Cleanup",          "savings": "cleanup" },
-        "google_system_slim":       { "enabled": true, "label": "Google systemInstruction Slim", "savings": "-10% system" }
+        "system_prompt_slim": {
+            "enabled": true,
+            "label": "System Prompt Slim",
+            "max_len": 800,
+            "savings": "-10% system"
+        },
+        "concision_directive": {
+            "enabled": true,
+            "label": "Concision Directive Inject",
+            "directive": "[OPT:concise,diff-only,<=8lines]",
+            "savings": "reduces verbosity"
+        },
+        "lazy_tool_schemas": {
+            "enabled": true,
+            "label": "Lazy Tool Schemas",
+            "max_tools": 5,
+            "max_desc": 40,
+            "savings": "-40% input"
+        },
+        "tool_result_truncation": {
+            "enabled": true,
+            "label": "Tool Result Truncation",
+            "max_lines": 100,
+            "savings": "-60% tool output"
+        },
+        "filler_removal": {
+            "enabled": true,
+            "label": "Filler Removal (EN\/FR)",
+            "savings": "-10% user msgs"
+        },
+        "history_compression": {
+            "enabled": true,
+            "label": "History Compression",
+            "keep_first": 1,
+            "keep_last": 8,
+            "savings": "-55% history"
+        },
+        "deduplication": {
+            "enabled": true,
+            "label": "Deduplication",
+            "savings": "-5%"
+        },
+        "max_tokens_enforcement": {
+            "enabled": true,
+            "label": "max_tokens Tier Cap",
+            "tier0": 800,
+            "tier1": 2000,
+            "tier2": 4000,
+            "savings": "-75% output"
+        },
+        "base64_image_strip": {
+            "enabled": true,
+            "label": "Base64 Image Strip",
+            "savings": "-95% vision"
+        },
+        "assistant_response_trim": {
+            "enabled": true,
+            "label": "Old Assistant Trim",
+            "max_len": 200,
+            "savings": "-30% history"
+        },
+        "empty_block_cleanup": {
+            "enabled": true,
+            "label": "Empty Block Cleanup",
+            "savings": "cleanup"
+        },
+        "google_system_slim": {
+            "enabled": true,
+            "label": "Google systemInstruction Slim",
+            "savings": "-10% system"
+        }
     },
-    "updated_at": "2026-08-29 20:44:00"
+    "updated_at": "2026-08-29 19:03:50"
 }

@@ -547,6 +547,8 @@ document.addEventListener('DOMContentLoaded', () => {
         el('opt-token-reduction', `-${s.token_reduction_percent||0}%`);
         el('opt-token-subtext', `AVANT: ${Number(s.avg_before_tokens||0).toLocaleString()} → APRÈS: ${Number(s.avg_after_tokens||0).toLocaleString()}`);
         el('opt-ratio', `${s.compression_ratio||1.0}x`);
+        const compBadge = document.getElementById('bench-compression-badge');
+        if (compBadge) compBadge.textContent = `${s.compression_ratio||'--'}x`;
         el('opt-cost-reduction', `-${s.cost_reduction_percent||0}%`);
         // Update dynamic header badges (previously hardcoded -73.4%)
         const tokenBadge = document.getElementById('bench-token-reduction-badge');
@@ -587,8 +589,8 @@ document.addEventListener('DOMContentLoaded', () => {
             labels.push(prompts[k].name);
             const b = (snapshots||[]).find(s => s.prompt_key === k && s.mode === 'BEFORE_OPTIMIZATION');
             const a = (snapshots||[]).find(s => s.prompt_key === k && s.mode === 'AFTER_OPTIMIZATION');
-            before.push(b ? b.math.total_tokens : 7200);
-            after.push(a ? a.math.total_tokens : 3100);
+            before.push(b ? b.math.total_tokens : 0);
+            after.push(a ? a.math.total_tokens : 0);
         });
         comparisonChart = new Chart(canvas.getContext('2d'), {
             type: 'bar', data: { labels, datasets: [

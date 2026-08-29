@@ -202,7 +202,7 @@
             <div class="kpi-subtext" id="opt-token-subtext">Économie par exécution</div>
           </div>
           <div class="glass-card" style="background: rgba(99,102,241,0.08); border-color: rgba(99,102,241,0.25);">
-            <div class="kpi-card-header"><span>Compression</span><span style="color: var(--accent-indigo); font-weight: 700;">3.76x</span></div>
+            <div class="kpi-card-header"><span>Compression</span><span style="color: var(--accent-indigo); font-weight: 700;" id="bench-compression-badge">--x</span></div>
             <div class="kpi-value" style="color: var(--accent-indigo)" id="opt-ratio">--</div>
           </div>
           <div class="glass-card" style="background: rgba(236,72,153,0.08); border-color: rgba(236,72,153,0.25);">

@@ -19,18 +19,38 @@ if (str_starts_with($action, 'proxy_')) {
     $stats  = file_exists($statsFile)  ? json_decode(file_get_contents($statsFile), true) : [];
 
     if ($action === 'proxy_status') {
-        // Fetch live health from proxy
+        // Fetch live health from proxy (use file_get_contents — no curl ext needed)
         $health = [];
-        $ch = curl_init('http://localhost:' . ($config['port'] ?? 3100) . '/health');
-        curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 2, CURLOPT_CONNECTTIMEOUT => 1]);
-        $resp = curl_exec($ch);
-        $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
-        if ($code === 200 && $resp) $health = json_decode($resp, true) ?? [];
+        $port = $config['port'] ?? 3100;
+        $ctx = stream_context_create(['http' => ['timeout' => 2, 'ignore_errors' => true]]);
+        $resp = @file_get_contents("http://localhost:{$port}/health", false, $ctx);
+        if ($resp) $health = json_decode($resp, true) ?? [];
+
+        // Compute real stats from log even if proxy is offline
+        $savingsPcts = array_filter(array_column($stats, 'savings_pct'));
+        $totalBefore = array_sum(array_column($stats, 'input_bytes_before'));
+        $totalAfter  = array_sum(array_column($stats, 'input_bytes_after'));
+        $realPct     = $totalBefore > 0 ? round(100 * (1 - $totalAfter / $totalBefore), 1) : 0;
+
+        // Merge computed stats into health if health is empty
+        if (empty($health)) {
+            $health = [
+                'status'             => 'offline',
+                'proxy'              => 'AI Token Optimizer Proxy v2.0',
+                'port'               => $port,
+                'requests_logged'    => count($stats),
+                'tokens_saved_est'   => array_sum(array_column($stats, 'tokens_saved_est')),
+                'avg_savings_pct'    => count($savingsPcts) > 0 ? round(array_sum($savingsPcts) / count($savingsPcts), 1) : 0,
+                'real_savings_pct'   => $realPct,
+                'total_bytes_before' => $totalBefore,
+                'total_bytes_after'  => $totalAfter,
+                'optimizations'      => 12,
+            ];
+        }
 
         echo json_encode([
             'status'       => 'success',
-            'proxy_online' => !empty($health),
+            'proxy_online' => ($health['status'] ?? '') !== 'offline',
             'health'       => $health,
             'config'       => $config,
             'stats_count'  => count($stats),
