@@ -153,11 +153,17 @@ ai-token-optimizer/
 ├── agent_benchmark.php    # AVANT/APRÈS benchmark capture & comparison
 ├── js/app.js              # Frontend dashboard (vanilla JS + Chart.js, 100% dynamic)
 ├── css/style.css          # Premium dark glassmorphism theme
+├── proxy/
+│   ├── proxy.php          # Transparent local API proxy (port 3100)
+│   ├── optimizer.php      # 8-pattern request optimizer (applied before forwarding)
+│   ├── start_proxy.sh     # Starts the proxy as a background daemon
+│   └── activate_proxy.sh  # Source to redirect a session through the proxy
 └── data/
     ├── guide.json                      # 60-section Guide 2026 (7 categories)
     ├── cache.json                      # Scanner cache (TTL 5s)
     ├── token_optimization_status.json  # Active optimization flags (live)
-    └── memory_fts.json                 # FTS5 memory index
+    ├── memory_fts.json                 # FTS5 memory index
+    └── proxy_stats.json                # Per-request optimization stats (last 200)
 ```
 
 ---
@@ -172,6 +178,62 @@ chmod +x install.sh start_server.sh
 ./start_server.sh     # Launch web dashboard
 ```
 Open: **`http://localhost:8080`**
+
+---
+
+## 🔌 Transparent API Proxy — 8-Pattern Real-Time Optimizer
+
+The proxy intercepts **every** Claude / Gemini API call in real time and applies 8 aggressive optimizations **before** forwarding the request. Your model choice is never changed — only the payload is compressed.
+
+| # | Optimization | Savings |
+| :---: | :--- | :---: |
+| 1 | **System prompt slim** — truncate to 200 chars | -10% system |
+| 2 | **Concision directive injection** — appends `[OPT:concise,diff-only,<=8lines]` | reduces verbosity |
+| 3 | **Lazy tool schemas** — max 5 tools, 40-char descriptions, strip `title`/`$ref`/`additionalProperties` | -40% input |
+| 4 | **Tool result truncation** — cap at 100 lines | -60% tool output |
+| 5 | **Filler removal** — strips EN + FR filler phrases from user messages | -10% user msgs |
+| 6 | **History compression** — keep first 1 + last 8 messages | -55% history |
+| 7 | **Deduplication** — remove consecutive identical messages | -5% |
+| 8 | **`max_tokens` enforcement** — always capped by task tier (tier0=400 / tier1=1200 / tier2=3000) | -75% output |
+
+### Setup (one-time)
+
+**1. Start the proxy daemon**
+
+```bash
+bash proxy/start_proxy.sh
+```
+
+**2. Redirect your IDE / SDK to the proxy — add to `~/.bashrc` (permanent)**
+
+```bash
+export ANTHROPIC_BASE_URL=http://localhost:3100
+export ANTHROPIC_API_BASE=http://localhost:3100
+export GOOGLE_GENERATIVE_AI_API_BASE=http://localhost:3100
+```
+
+Then apply immediately:
+
+```bash
+source ~/.bashrc
+```
+
+**Or activate for the current session only:**
+
+```bash
+source proxy/activate_proxy.sh
+```
+
+**3. Verify the proxy is running**
+
+```bash
+curl http://localhost:3100/health
+# → {"status":"ok","proxy":"AI Token Optimizer Proxy v1.0","port":3100,...}
+```
+
+> **Why this matters:** If `ANTHROPIC_BASE_URL` is not set, every request bypasses the proxy and hits the real API directly — all optimizations are silently skipped and your credit drains at full speed.
+
+> **Auto-restart on boot:** add `bash /path/to/proxy/start_proxy.sh` to your `~/.profile` or a systemd user service.
 
 ---
 

@@ -34,7 +34,7 @@ class RequestOptimizer
         'tier2' => 3000,  // architecture, debug → detailed answer
     ];
 
-    // Filler phrases to strip from user messages
+    // Filler phrases to strip from user messages (EN + FR)
     const FILLERS = [
         '/\bplease make sure to\b/i', '/\bmake sure to\b/i',
         '/\bplease ensure that you\b/i', '/\bin order to\b/i',
@@ -42,6 +42,12 @@ class RequestOptimizer
         '/\bfeel free to\b/i', '/\byou should always\b/i',
         '/\bas an ai\b/i', '/\bplease note that\b/i',
         '/\bI would like you to\b/i', '/\bCould you please\b/i',
+        // French fillers
+        '/\bn.oublie pas de\b/i', '/\bveuillez\b/i',
+        '/\bs.il te pla.t\b/i', '/\bs.il vous pla.t\b/i',
+        '/\bassurez-vous de\b/i', '/\bfais en sorte de\b/i',
+        '/\bil est important de noter que\b/i', '/\btu dois toujours\b/i',
+        '/\ben tant qu.ia\b/i', '/\bj.aimerais que tu\b/i',
     ];
 
     // Task tier signals
@@ -69,8 +75,11 @@ class RequestOptimizer
             [$payload['system'], $stats['system_trimmed']] = $this->slimSystem($payload['system']);
         }
 
-        // 2. Inject concision directive (very short)
+        // 2. Inject concision directive then re-slim to enforce cap
         $payload = $this->injectDirective($payload);
+        if (!empty($payload['system'])) {
+            [$payload['system'], ] = $this->slimSystem($payload['system']);
+        }
 
         // 3. Lazy tool schemas (most impactful on input tokens)
         if (!empty($payload['tools'])) {
@@ -170,14 +179,21 @@ class RequestOptimizer
             }
             // Remove all non-essential schema fields
             if (isset($tool['input_schema'])) {
-                unset($tool['input_schema']['examples'], $tool['input_schema']['$defs'], $tool['input_schema']['$schema']);
+                unset(
+                    $tool['input_schema']['examples'],
+                    $tool['input_schema']['$defs'],
+                    $tool['input_schema']['$schema'],
+                    $tool['input_schema']['title'],
+                    $tool['input_schema']['additionalProperties']
+                );
                 // Remove property descriptions inside schema (very verbose)
                 if (isset($tool['input_schema']['properties'])) {
                     foreach ($tool['input_schema']['properties'] as &$prop) {
                         if (isset($prop['description'])) {
                             $prop['description'] = $this->trimStr($prop['description'], 30);
                         }
-                        unset($prop['examples'], $prop['default'], $prop['enum']);
+                        unset($prop['examples'], $prop['default'], $prop['enum'],
+                              $prop['title'], $prop['\$ref'], $prop['additionalProperties']);
                     }
                 }
             }
@@ -329,10 +345,8 @@ class RequestOptimizer
 
         $cap = self::MAX_TOKENS[$tier];
 
-        // Enforce only if current value is much larger (don't raise if user set a low value)
-        if (!isset($payload['max_tokens']) || $payload['max_tokens'] > $cap) {
-            $payload['max_tokens'] = $cap;
-        }
+        // Always enforce — never let the client override the cap upward
+        $payload['max_tokens'] = $cap;
 
         return [$payload, $cap];
     }
