@@ -177,27 +177,71 @@ SKILL;
      */
     private function applyRealRuleFile(): void {
         $ruleContent = <<<'EOD'
-# Google Antigravity Real-Time Token Optimization Rule Set
-# Paths: ~/.gemini/antigravity/rules/token_optimization.md & .gemini/rules/token_optimization.md
+# AI Token Optimizer — Enforcement Rules (Guide 2026)
+# Auto-applied on every turn via always-on rule
 
 <token_optimization_rules>
-1. CONCISE_COMMUNICATION: Eliminate conversational commentary, preambles, and filler (<= 8 lines).
-2. EFFICIENT_DIFFS: Always use compact targeted diff blocks instead of reprinting full files.
-3. CONTEXT_PRUNING: Truncate repetitive logs and omit unnecessary docstrings during code updates.
-4. LAZY_TOOLS: Defer non-essential tool JSON schemas until explicitly needed (Pattern #1).
-5. TOOL_BATCHING: Collapse multi-step shell/file edits into 1 parallel turn (Pattern #2).
-6. SKILL_RESOLUTION: Use scoped .agents/skills/ documents rather than bloated always-on rules (Pattern #3).
-7. EPISODIC_SEARCH: Query SQLite FTS5 session memory instead of keeping long histories (Pattern #4).
-8. PROMPT_EVOLUTION: Keep prompts compressed to minimal token representations (Pattern #5).
+MODEL_ROUTING:
+  - mechanical (rename, lint, format, commit): Flash + reasoning=low
+  - feature / refactor / test: Flash + reasoning=default
+  - architecture / security / race-condition: Pro + reasoning=high (plan only, then drop to Flash)
+  - NEVER start with Sonnet/Opus/Pro for a task that fits Flash
+
+SESSION_MANAGEMENT:
+  - ONE task = ONE session. New topic → /fork or new chat.
+  - At 50% context fill → /compact immediately.
+  - Do not carry yesterday's context into today.
+
+CONTEXT_DISCIPLINE:
+  - Search with rg/grep before reading any file.
+  - Read only files required for this specific task.
+  - Never inject full repo, node_modules, dist, build, logs.
+  - Truncate tool output to 150 lines max.
+
+OUTPUT_CONTROL:
+  - Final response <= 8 lines unless code diff.
+  - Return diff not full file rewrite.
+  - One line per passing test. Error only on failure.
+
+MCP_TOOLS:
+  - Disable browser, DB, and cloud MCPs unless explicitly needed.
+  - Expose max 5 tools per task, not all available tools.
 </token_optimization_rules>
 EOD;
+
+        $geminiMd = <<<'GEMINI'
+# Global Gemini Preferences (Guide 2026 §6.4)
+- Search narrowly before reading files.
+- Concise outputs (<= 8 lines).
+- Run narrowest relevant test first.
+- Do not scan generated dependencies unless required.
+- Default model: Flash. Use Pro/Thinking ONLY for architecture or failed attempts.
+- Reasoning effort: low by default. Escalate to medium only if low fails.
+- New session for each new task. Compact at 50% context fill.
+- Disable unused MCP servers before starting.
+GEMINI;
 
         @mkdir($this->rulesDir, 0755, true);
         @mkdir(__DIR__ . '/.gemini/rules', 0755, true);
 
         file_put_contents($this->ruleFile, $ruleContent);
         file_put_contents(__DIR__ . '/.gemini/rules/token_optimization.md', $ruleContent);
+
+        // Enforce Flash as default model in ~/.gemini/config/config.json
+        $homeDir   = getenv('HOME') ?: '/tmp';
+        $cfgPath   = $homeDir . '/.gemini/config/config.json';
+        $cfg       = file_exists($cfgPath) ? (json_decode(file_get_contents($cfgPath), true) ?: []) : [];
+        $cfg['userSettings'] = array_merge($cfg['userSettings'] ?? [], [
+            'selectedModel'  => 'gemini-2.5-flash',
+            'preferredModel' => 'gemini-2.5-flash',
+        ]);
+        file_put_contents($cfgPath, json_encode($cfg, JSON_PRETTY_PRINT));
+
+        // Update global GEMINI.md with model routing directive
+        $geminiMdPath = $homeDir . '/.gemini/GEMINI.md';
+        file_put_contents($geminiMdPath, $geminiMd);
     }
+
 
     private function removeRealRuleFile(): void {
         if (file_exists($this->ruleFile)) {
