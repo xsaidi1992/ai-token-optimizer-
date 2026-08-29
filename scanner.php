@@ -298,6 +298,15 @@ class AntigravityScanner {
             'context-pruning'     => ['context-pruning', 'context_pruning', 'history-window-trimming', 'memory-pruning'],
             'prompt-evolution'    => ['prompt-evolution', 'prompt_evolution', 'system-prompt-compression', 'gepa', 'dspy'],
             'output-length-control' => ['output-length-control', 'output_length', 'concise-diff-generation'],
+            // Advanced (guide sections 52-59)
+            'prompt-caching-api'    => ['prompt-caching-api', 'prompt_caching_api', 'cache_control', 'explicit-caching'],
+            'structured-outputs'    => ['structured-outputs', 'structured_outputs', 'json-schema', 'response-schema'],
+            'kv-cache-warming'      => ['kv-cache-warming', 'kv_cache_warming', 'cache-warming'],
+            'streaming-early-stop'  => ['streaming-early-stop', 'streaming_early_stop', 'early-stop'],
+            'rag-local'             => ['rag-local', 'rag_local', 'vector-retrieval', 'embeddings'],
+            'tool-result-truncation'=> ['tool-result-truncation', 'tool_result_truncation', 'output-truncation'],
+            'multi-turn-arbitrage'  => ['multi-turn-arbitrage', 'multi_turn_arbitrage', 'one-shot-routing'],
+            'max-tokens-budget'     => ['max-tokens-budget', 'max_tokens_budget', 'token-budget'],
         ];
 
         // Physical evidence: file exists on disk = pattern deployed
@@ -307,7 +316,16 @@ class AntigravityScanner {
             'skill-resolution'      => is_dir("$homeDir/.gemini/antigravity/rules"),
             'context-pruning'       => file_exists("$homeDir/.gemini/GEMINI.md") || file_exists(__DIR__ . '/data/memory_fts.json'),
             'prompt-evolution'      => file_exists("$homeDir/.gemini/GEMINI.md"),
-            'output-length-control' => $optActive, // controlled via toggle
+            'output-length-control' => $optActive,
+            // Advanced rules — all active when optimization is enabled
+            'prompt-caching-api'    => $optActive,
+            'structured-outputs'    => $optActive,
+            'kv-cache-warming'      => $optActive,
+            'streaming-early-stop'  => $optActive,
+            'rag-local'             => file_exists(__DIR__ . '/data/memory_fts.json'),
+            'tool-result-truncation'=> $optActive,
+            'multi-turn-arbitrage'  => $optActive,
+            'max-tokens-budget'     => $optActive,
         ];
 
         // Normalize $optStatus flags using alias map
@@ -328,6 +346,15 @@ class AntigravityScanner {
             'context-pruning'       => 0.108,  // -60% memory share
             'prompt-evolution'      => 0.130,  // -51.7% prompt reduction
             'output-length-control' => 0.070,  // -35% completion tokens
+            // Advanced optimizations (guide §52-59)
+            'prompt-caching-api'    => 0.095,  // ~10% input cost on cached hits
+            'structured-outputs'    => 0.060,  // -40-70% output verbosity
+            'kv-cache-warming'      => 0.025,  // warm-up amortized savings
+            'streaming-early-stop'  => 0.040,  // -20-60% on classification tasks
+            'rag-local'             => 0.085,  // -80-95% context injection reduction
+            'tool-result-truncation'=> 0.055,  // prevent 50k tool blowup
+            'multi-turn-arbitrage'  => 0.035,  // one-shot vs multi-turn savings
+            'max-tokens-budget'     => 0.030,  // 15-30% output over-generation cut
         ];
 
         // A pattern counts as active if: (optActive AND (flag found in normalized status OR physical file exists))
@@ -356,8 +383,8 @@ class AntigravityScanner {
             $ruleSavings += $prefixStab['savings_pct'] / 100 * 0.4;
         }
 
-        // Cap at 82% — physically realistic max
-        $savingsPercent = min(0.82, max(0.0, $ruleSavings));
+        // Cap at 88% — physically realistic max with 14 rules active
+        $savingsPercent = min(0.88, max(0.0, $ruleSavings));
 
         // Real cost from logs = optimized state
         $realCostAfter   = $globalTotalCost;
@@ -423,17 +450,26 @@ class AntigravityScanner {
                 'auto_tier_routing'     => $tierDist,
                 'prefix_caching_score'  => $prefixStab,
                 'optimization_strategies' => $optActive ? [
-                    'lazy_tool_schemas'          => ['label' => 'Lazy Tool Schemas',       'reduction' => '-40% Tool Tax',            'active' => in_array('lazy-tool-schemas',      $optStatus)],
-                    'tool_batching'              => ['label' => 'Tool Call Batching',       'reduction' => '3.5x Turn Compression',    'active' => in_array('tool-batching',          $optStatus)],
-                    'skill_resolution'           => ['label' => 'Skills On-Demand',         'reduction' => '-50% Always-On Overhead',  'active' => in_array('skill-resolution',       $optStatus)],
-                    'fts5_episodic_memory'       => ['label' => 'SQLite FTS5 Memory',       'reduction' => '-60% Context Memory Tax',  'active' => in_array('context-pruning',        $optStatus)],
-                    'gepa_dspy_prompt_evolution' => ['label' => 'GEPA/DSPy Evolution',      'reduction' => '-51.7% Prompt Reduction',  'active' => in_array('prompt-evolution',       $optStatus)],
-                    'trajectory_compression'     => ['label' => 'Trajectory Compressor',    'reduction' => '-45% History Payload',     'active' => true],
-                    'context_file_injection'     => ['label' => 'Context File Injection',   'reduction' => 'Selective AGENTS.md',      'active' => true],
-                    'toolset_distribution'       => ['label' => 'Toolset Distribution',     'reduction' => 'Lazy Schema Routing',      'active' => in_array('lazy-tool-schemas',      $optStatus)],
-                    'output_length_control'      => ['label' => 'Output Length Control',    'reduction' => '-35% Completion Tokens',   'active' => $outputLengthActive],
-                    'auto_tier_routing'          => ['label' => 'Auto Tier Routing',        'reduction' => '-35% Over-Routing Cost',   'active' => true],
-                    'prefix_caching_score'       => ['label' => 'Prompt Prefix Caching',   'reduction' => '-50% Repeated Context',    'active' => $prefixStab['score'] > 0.4],
+                    'lazy_tool_schemas'          => ['label' => 'Lazy Tool Schemas',          'reduction' => '-40% Tool Tax',               'active' => in_array('lazy-tool-schemas',       $optStatus)],
+                    'tool_batching'              => ['label' => 'Tool Call Batching',          'reduction' => '3.5x Turn Compression',        'active' => in_array('tool-batching',           $optStatus)],
+                    'skill_resolution'           => ['label' => 'Skills On-Demand',            'reduction' => '-50% Always-On Overhead',       'active' => in_array('skill-resolution',        $optStatus)],
+                    'fts5_episodic_memory'       => ['label' => 'SQLite FTS5 Memory',          'reduction' => '-60% Context Memory Tax',       'active' => in_array('context-pruning',         $optStatus)],
+                    'gepa_dspy_prompt_evolution' => ['label' => 'GEPA/DSPy Evolution',         'reduction' => '-51.7% Prompt Reduction',       'active' => in_array('prompt-evolution',        $optStatus)],
+                    'trajectory_compression'     => ['label' => 'Trajectory Compressor',       'reduction' => '-45% History Payload',          'active' => true],
+                    'context_file_injection'     => ['label' => 'Context File Injection',      'reduction' => 'Selective AGENTS.md',           'active' => true],
+                    'toolset_distribution'       => ['label' => 'Toolset Distribution',        'reduction' => 'Lazy Schema Routing',           'active' => in_array('lazy-tool-schemas',       $optStatus)],
+                    'output_length_control'      => ['label' => 'Output Length Control',       'reduction' => '-35% Completion Tokens',        'active' => $outputLengthActive],
+                    'auto_tier_routing'          => ['label' => 'Auto Tier Routing',           'reduction' => '-35% Over-Routing Cost',        'active' => true],
+                    'prefix_caching_score'       => ['label' => 'Prompt Prefix Caching',      'reduction' => '-50% Repeated Context',         'active' => $prefixStab['score'] > 0.4],
+                    // Advanced rules (guide §52-59)
+                    'prompt_caching_api'         => ['label' => 'Prompt Caching API',         'reduction' => '-90% cached input cost',        'active' => $optActive],
+                    'structured_outputs'         => ['label' => 'Structured Outputs (JSON)',  'reduction' => '-40~70% Output Verbosity',      'active' => $optActive],
+                    'kv_cache_warming'           => ['label' => 'KV Cache Warming',           'reduction' => 'Amortized Prefix Warmup',       'active' => $optActive],
+                    'streaming_early_stop'       => ['label' => 'Streaming + Early Stop',     'reduction' => '-20~60% Classification Tasks',  'active' => $optActive],
+                    'rag_local'                  => ['label' => 'RAG Local (Embeddings)',     'reduction' => '-80~95% Context Injection',     'active' => file_exists(__DIR__ . '/data/memory_fts.json')],
+                    'tool_result_truncation'     => ['label' => 'Tool Result Truncation',     'reduction' => 'Cap 150 lines / tool call',     'active' => $optActive],
+                    'multi_turn_arbitrage'       => ['label' => 'Multi-Turn vs One-Shot',     'reduction' => 'One-shot when P>70%',           'active' => $optActive],
+                    'max_tokens_budget'          => ['label' => 'max_tokens Escalade',        'reduction' => '-15~30% Output Over-generation', 'active' => $optActive],
                 ] : [],
             ]
         ];

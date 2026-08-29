@@ -210,14 +210,22 @@ EOD;
 
     private function saveStatus(bool $isActive, array $rules): array {
         require_once __DIR__ . '/scanner.php';
+
+        // Write a minimal status first so the scanner sees the correct is_active state
+        // (scanner reads this file to decide which rules are active)
+        file_put_contents($this->statusFile, json_encode([
+            'is_active' => $isActive,
+            'rules'     => $rules,
+        ]));
+
         $scanner = new AntigravityScanner();
         $realScan = $scanner->scan(true);
-        $summary = $realScan['summary'] ?? [];
+        $summary  = $realScan['summary'] ?? [];
 
-        $totalTokens = $summary['global_total_tokens'] ?? 65000;
-        $totalCost = $summary['global_total_cost'] ?? 0.015;
-        $scanKpi = $realScan['editors']['antigravity']['efficiency_kpis'] ?? [];
-        $savingsPercent = $isActive ? ($scanKpi['savings_percent'] ?? 73.4) : 0;
+        $totalTokens    = $summary['global_total_tokens'] ?? 0;
+        $totalCost      = $summary['global_total_cost']   ?? 0.0;
+        $scanKpi        = $realScan['efficiency_kpis']    ?? [];
+        $savingsPercent = $isActive ? ($scanKpi['savings_percent'] ?? 0) : 0;
         $tokensSaved = (int)ceil($totalTokens * ($savingsPercent / 100));
         $costSaved = round($totalCost * ($savingsPercent / 100), 4);
 

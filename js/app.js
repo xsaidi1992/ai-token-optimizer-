@@ -201,7 +201,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div style="background: rgba(0,0,0,0.35); padding: 0.85rem 1.4rem; border-radius: 12px; border: 1px solid rgba(16,185,129,0.4); text-align: right;">
                         <span style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; display: block; font-weight: 700;">Économie Calculée</span>
                         <span style="font-size: 1.6rem; font-weight: 900; color: #10b981;">${kpi.savings_percent ?? 0}%</span>
-                        <span style="font-size: 0.72rem; color: var(--text-dim); display: block;">Moteur 8 Patterns Actif</span>
+                        <span style="font-size: 0.72rem; color: var(--text-dim); display: block;">Moteur ${Object.keys(kpi.optimization_strategies || {}).length} Patterns Actif</span>
                     </div>
                 </div>
 
@@ -212,12 +212,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
                 <div style="background:rgba(0,0,0,0.25); padding:0.85rem 1rem; border-radius:10px; border:1px solid rgba(255,255,255,0.05)">
                     <span style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase; display:block">Prompt Cache Hit Ratio</span>
-                    <span style="font-size:1.4rem; font-weight:800; color:var(--accent-indigo)">${kpi.cache_hit_ratio || 64.5}%</span>
+                    <span style="font-size:1.4rem; font-weight:800; color:var(--accent-indigo)">${kpi.cache_hit_ratio ?? '--'}%</span>
                     <span style="font-size:0.72rem; color:var(--text-dim)">Guide §29 Prompt Caching</span>
                 </div>
                 <div style="background:rgba(0,0,0,0.25); padding:0.85rem 1rem; border-radius:10px; border:1px solid rgba(255,255,255,0.05)">
                     <span style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase; display:block">Taux de Re-Travail</span>
-                    <span style="font-size:1.4rem; font-weight:800; color:#f59e0b">${kpi.rework_rate || 8.2}%</span>
+                    <span style="font-size:1.4rem; font-weight:800; color:#f59e0b">${kpi.rework_rate ?? '--'}%</span>
                     <span style="font-size:0.72rem; color:var(--text-dim)">Guide §1.1 Iteration tax</span>
                 </div>
                 <div style="background:rgba(0,0,0,0.25); padding:0.85rem 1rem; border-radius:10px; border:1px solid rgba(255,255,255,0.05)">
@@ -241,7 +241,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <div style="margin-top:1.5rem; padding:1.25rem; background:linear-gradient(135deg, rgba(99,102,241,0.15), rgba(16,185,129,0.1)); border:1px solid rgba(99,102,241,0.3); border-radius:12px">
                 <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem; margin-bottom:0.75rem">
                     <span style="font-size:0.95rem; font-weight:800; color:white; display:flex; align-items:center; gap:0.5rem">
-                        ⚡ Agentic Optimization Engine <span style="background:#10b981; color:black; font-size:0.7rem; padding:2px 8px; border-radius:12px; font-weight:800">ACTIVE - ${kpi.savings_percent ?? 73.4}% TOKENS SAVED</span>
+                        ⚡ Agentic Optimization Engine <span style="background:#10b981; color:black; font-size:0.7rem; padding:2px 8px; border-radius:12px; font-weight:800">ACTIVE - ${kpi.savings_percent ?? '--'}% TOKENS SAVED</span>
                     </span>
                     <span style="font-size:0.8rem; color:#818cf8; font-weight:700">Guide 2026 + Agentic Architecture Integration</span>
                 </div>
@@ -443,7 +443,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const kpi = ed.efficiency_kpis || {};
             const statusCls = ed.is_installed ? 'installed' : 'missing';
             const statusTxt = ed.is_installed ? '✅ Détecté' : '❌ Non Détecté';
-            const savingsPct = kpi.savings_percent || (ed.rules_active ? 73.4 : 0);
+            const savingsPct = kpi.savings_percent || (ed.rules_active ? (kpi.savings_percent ?? 0) : 0);
             const rulesCount = kpi.active_rule_count || (ed.rules_active ? 6 : 0);
             const rulesBadge = (ed.rules_active || kpi.engine_opt_active) 
                 ? `<span class="status-badge rules-on">⚡ -${savingsPct}% (${rulesCount} règles)</span>` 
@@ -458,7 +458,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
                 <div style="font-size:0.82rem;color:var(--text-muted);margin-top:0.4rem">Modèles supportés (${(ed.detected_models||[]).length}):</div>
                 <div style="font-size:0.78rem;color:var(--accent-indigo);margin-bottom:0.5rem">${(ed.detected_models||[]).slice(0,3).join(', ')}...</div>
-                <div style="font-size:0.78rem;color:var(--accent-emerald);margin-bottom:0.3rem">Gain $ / 100k: +$${Number(kpi.savings_per_100k || 0.0735).toFixed(4)}</div>
+                <div style="font-size:0.78rem;color:var(--accent-emerald);margin-bottom:0.3rem">Gain $ / 100k: +$${Number(kpi.savings_per_100k || 0).toFixed(4)}</div>
                 <div class="rule-files">Fichiers: ${files}</div>
                 <button class="btn-deploy-editor" onclick="deployEditor('${key}')">⚙️ Déployer Règles (${ed.name})</button>
             </div>`;
@@ -548,6 +548,11 @@ document.addEventListener('DOMContentLoaded', () => {
         el('opt-token-subtext', `AVANT: ${Number(s.avg_before_tokens||0).toLocaleString()} → APRÈS: ${Number(s.avg_after_tokens||0).toLocaleString()}`);
         el('opt-ratio', `${s.compression_ratio||1.0}x`);
         el('opt-cost-reduction', `-${s.cost_reduction_percent||0}%`);
+        // Update dynamic header badges (previously hardcoded -73.4%)
+        const tokenBadge = document.getElementById('bench-token-reduction-badge');
+        if (tokenBadge) tokenBadge.textContent = `-${s.token_reduction_percent||0}%`;
+        const costBadge = document.getElementById('bench-cost-reduction-badge');
+        if (costBadge) costBadge.textContent = `-${s.cost_reduction_percent||0}%`;
         // Table
         const tbody = document.getElementById('snapshot-table-body');
         if (tbody && data.snapshots) {

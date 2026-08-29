@@ -152,7 +152,7 @@
     <div id="tab-guide" class="tab-content" style="display:none;">
       <section class="glass-card" style="margin-bottom: 2rem;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 1rem;">
-          <h2 class="section-title">📘 Guide Maximal d'Optimisation des Tokens (52 Sections)</h2>
+          <h2 class="section-title">📘 Guide Maximal d'Optimisation des Tokens (60 Sections)</h2>
           <input type="text" id="guide-search" class="form-control" style="max-width: 300px;" placeholder="🔍 Rechercher dans le guide...">
         </div>
         <div class="guide-categories" id="guide-categories" style="display: flex; gap: 0.5rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
@@ -163,6 +163,7 @@
           <button class="filter-pill" data-cat="prompts">Prompts</button>
           <button class="filter-pill" data-cat="audit">Audit</button>
           <button class="filter-pill" data-cat="team">Équipe</button>
+          <button class="filter-pill" data-cat="advanced">⚡ Avancé</button>
         </div>
         <div id="guide-content" class="guide-sections"></div>
       </section>
@@ -195,7 +196,7 @@
 
         <div class="kpi-grid" style="margin-bottom: 1.5rem;">
           <div class="glass-card" style="background: rgba(16,185,129,0.08); border-color: rgba(16,185,129,0.25);">
-            <div class="kpi-card-header"><span>Réduction Tokens</span><span style="color: var(--accent-emerald); font-weight: 700;">-73.4%</span></div>
+            <div class="kpi-card-header"><span>Réduction Tokens</span><span id="bench-token-reduction-badge" style="color: var(--accent-emerald); font-weight: 700;">--%</span></div>
             <div class="kpi-value" style="color: var(--accent-emerald)" id="opt-token-reduction">--</div>
             <div class="kpi-subtext" id="opt-token-subtext">Économie par exécution</div>
           </div>
@@ -204,7 +205,7 @@
             <div class="kpi-value" style="color: var(--accent-indigo)" id="opt-ratio">--</div>
           </div>
           <div class="glass-card" style="background: rgba(236,72,153,0.08); border-color: rgba(236,72,153,0.25);">
-            <div class="kpi-card-header"><span>Réduction Coût</span><span style="color: var(--accent-pink); font-weight: 700;">-73.4%</span></div>
+            <div class="kpi-card-header"><span>Réduction Coût</span><span id="bench-cost-reduction-badge" style="color: var(--accent-pink); font-weight: 700;">--%</span></div>
             <div class="kpi-value" style="color: var(--accent-pink)" id="opt-cost-reduction">--</div>
           </div>
         </div>
