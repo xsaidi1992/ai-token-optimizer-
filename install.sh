@@ -90,13 +90,40 @@ bash "${SCRIPT_DIR}/tools/ai-token-init" "${SCRIPT_DIR}"
 php -r "require_once '${SCRIPT_DIR}/memory_indexer.php'; new MemoryIndexer();" 2>/dev/null || true
 echo "  ✅ Episodic Memory initialized"
 
+# ── Proxy env vars → shell rc files ──────────────────────────────
+echo ""
+echo "🔌 Configuring Token Optimizer Proxy (port 3100)..."
+chmod +x "${SCRIPT_DIR}/proxy/start_proxy.sh"
+
+PROXY_MARKER="# AI Token Optimizer Proxy"
+PROXY_VARS="$PROXY_MARKER"$'\n'"export ANTHROPIC_BASE_URL=http://localhost:3100"$'\n'"export ANTHROPIC_API_BASE=http://localhost:3100"$'\n'"export GOOGLE_GENERATIVE_AI_API_BASE=http://localhost:3100"
+
+for RC_FILE in "${HOME}/.bashrc" "${HOME}/.zshrc" "${HOME}/.profile"; do
+    if [ -f "$RC_FILE" ] && ! grep -q 'ANTHROPIC_BASE_URL' "$RC_FILE" 2>/dev/null; then
+        echo "" >> "$RC_FILE"
+        echo "$PROXY_VARS" >> "$RC_FILE"
+        echo "  ✅ Proxy env vars added to $(basename $RC_FILE)"
+    fi
+done
+
+# Apply in current shell immediately
+export ANTHROPIC_BASE_URL=http://localhost:3100
+export ANTHROPIC_API_BASE=http://localhost:3100
+export GOOGLE_GENERATIVE_AI_API_BASE=http://localhost:3100
+
+# Start proxy now
+bash "${SCRIPT_DIR}/proxy/start_proxy.sh" || true
+
 echo ""
 echo "============================================================"
 echo "✅ Installation complete!"
 echo ""
-echo "🌐 Start the dashboard:"
-echo "    cd ${SCRIPT_DIR}"
-echo "    ./start_server.sh"
+echo "🔌 Proxy  : http://localhost:3100  (intercepts all API calls)"
+echo "🌐 Dashboard:"
+echo "    cd ${SCRIPT_DIR} && ./start_server.sh"
 echo ""
-echo "📍 Then open: http://localhost:8080"
+echo "📍 Open   : http://localhost:8080"
+echo ""
+echo "⚠️  IMPORTANT: run 'source ~/.bashrc' then restart Antigravity"
+echo "   so it picks up ANTHROPIC_BASE_URL=http://localhost:3100"
 echo "============================================================"

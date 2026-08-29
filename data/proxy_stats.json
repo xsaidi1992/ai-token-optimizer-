@@ -1,0 +1,11 @@
+[
+    {
+        "uri": "\/v1\/messages",
+        "tools_trimmed": 1,
+        "tool_results_truncated": 0,
+        "messages_compressed": 0,
+        "max_tokens_set": 800,
+        "tokens_saved_est": 200,
+        "timestamp": "2026-08-29 16:33:20"
+    }
+]

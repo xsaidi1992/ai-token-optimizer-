@@ -44,14 +44,23 @@ PHP_VERSION="$(php -r 'echo PHP_VERSION;')"
 HOSTNAME_DISPLAY="$(hostname 2>/dev/null || echo 'localhost')"
 
 echo "============================================================"
-echo "🚀 AI Token Optimizer — Dashboard Server"
+echo "🚀 AI Token Optimizer — Dashboard + Proxy"
 echo "   Universal Token Optimization for AI Dev Agents"
 echo "============================================================"
-echo "📍 URL    : http://localhost:${PORT}"
+echo "🔌 Proxy  : http://localhost:3100  (API interceptor)"
+echo "📍 Dashboard: http://localhost:${PORT}"
 echo "📁 Root   : ${DIR}"
 echo "🖥️  Machine : ${HOSTNAME_DISPLAY} | PHP ${PHP_VERSION}"
 echo "🔄 Stop   : Ctrl+C"
 echo "============================================================"
 echo ""
 
+# ── Start proxy (background) ──────────────────────────────────────
+if [ -f "${DIR}/proxy/start_proxy.sh" ]; then
+    chmod +x "${DIR}/proxy/start_proxy.sh"
+    bash "${DIR}/proxy/start_proxy.sh"
+    echo ""
+fi
+
+# ── Start dashboard ───────────────────────────────────────────────
 php -S "${HOST}:${PORT}" -t "${DIR}"
