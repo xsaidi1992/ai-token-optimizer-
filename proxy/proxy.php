@@ -49,7 +49,16 @@ if (
     || str_contains($uri, 'gemini')
 ) {
     $upstreamBase = 'https://generativelanguage.googleapis.com';
+} elseif (
+    str_contains($uri, '/v1/chat')
+    || str_contains($uri, '/v1/completions')
+    || str_contains($uri, '/v1/embeddings')
+    || str_contains($uri, '/v1/models')
+) {
+    // OpenAI-compatible: Cursor, Copilot, Aider, Cline, Codex, Windsurf, Zed, JetBrains
+    $upstreamBase = getenv('OPENAI_API_BASE') ?: 'https://api.openai.com';
 } else {
+    // Default: Anthropic (Claude Code, claude CLI)
     $upstreamBase = 'https://api.anthropic.com';
 }
 

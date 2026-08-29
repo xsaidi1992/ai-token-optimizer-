@@ -144,6 +144,7 @@ class RequestOptimizer
     {
         $d = ' [OPT:concise,diff-only,<=8lines]';
 
+        // Anthropic / Google: system field
         if (isset($payload['system'])) {
             if (is_string($payload['system']) && !str_contains($payload['system'], '[OPT:')) {
                 $payload['system'] .= $d;
@@ -152,6 +153,21 @@ class RequestOptimizer
                 if (empty($has)) {
                     $payload['system'][] = ['type' => 'text', 'text' => $d];
                 }
+            }
+        // OpenAI: inject into the first system message in messages[]
+        } elseif (isset($payload['messages'])) {
+            $injected = false;
+            foreach ($payload['messages'] as &$msg) {
+                if (($msg['role'] ?? '') === 'system') {
+                    if (is_string($msg['content']) && !str_contains($msg['content'], '[OPT:')) {
+                        $msg['content'] .= $d;
+                    }
+                    $injected = true;
+                    break;
+                }
+            }
+            if (!$injected) {
+                array_unshift($payload['messages'], ['role' => 'system', 'content' => $d]);
             }
         } else {
             $payload['system'] = $d;
@@ -173,29 +189,40 @@ class RequestOptimizer
         }
 
         foreach ($tools as &$tool) {
-            // Anthropic
+            // Anthropic format
             if (isset($tool['description'])) {
                 $tool['description'] = $this->trimStr($tool['description'], self::MAX_TOOL_DESC_LEN);
             }
-            // Remove all non-essential schema fields
-            if (isset($tool['input_schema'])) {
+            // OpenAI format: {type:"function", function:{name, description, parameters}}
+            if (isset($tool['function']['description'])) {
+                $tool['function']['description'] = $this->trimStr($tool['function']['description'], self::MAX_TOOL_DESC_LEN);
+            }
+            // Remove all non-essential schema fields (Anthropic: input_schema / OpenAI: parameters)
+            foreach (['input_schema', 'parameters'] as $schemaKey) {
+                if (!isset($tool[$schemaKey]) && isset($tool['function'][$schemaKey])) {
+                    $schemaTarget = &$tool['function'][$schemaKey];
+                } elseif (isset($tool[$schemaKey])) {
+                    $schemaTarget = &$tool[$schemaKey];
+                } else {
+                    continue;
+                }
                 unset(
-                    $tool['input_schema']['examples'],
-                    $tool['input_schema']['$defs'],
-                    $tool['input_schema']['$schema'],
-                    $tool['input_schema']['title'],
-                    $tool['input_schema']['additionalProperties']
+                    $schemaTarget['examples'],
+                    $schemaTarget['$defs'],
+                    $schemaTarget['$schema'],
+                    $schemaTarget['title'],
+                    $schemaTarget['additionalProperties']
                 );
-                // Remove property descriptions inside schema (very verbose)
-                if (isset($tool['input_schema']['properties'])) {
-                    foreach ($tool['input_schema']['properties'] as &$prop) {
+                if (isset($schemaTarget['properties'])) {
+                    foreach ($schemaTarget['properties'] as &$prop) {
                         if (isset($prop['description'])) {
                             $prop['description'] = $this->trimStr($prop['description'], 30);
                         }
                         unset($prop['examples'], $prop['default'], $prop['enum'],
-                              $prop['title'], $prop['\$ref'], $prop['additionalProperties']);
+                              $prop['title'], $prop['$ref'], $prop['additionalProperties']);
                     }
                 }
+                unset($schemaTarget);
             }
             // Google format
             if (isset($tool['functionDeclarations'])) {
@@ -219,7 +246,11 @@ class RequestOptimizer
         foreach ($messages as &$msg) {
             $content = $msg['content'] ?? $msg['parts'] ?? null;
             if (!is_array($content)) {
-                // Plain string content — check for tool_result role
+                // OpenAI role=tool — plain string content under role=tool
+                if (($msg['role'] ?? '') === 'tool' && is_string($msg['content'] ?? null)) {
+                    [$msg['content'], $didTruncate] = $this->truncLines($msg['content'], self::MAX_TOOL_RESULT_LINES);
+                    if ($didTruncate) $truncated++;
+                }
                 continue;
             }
 
@@ -266,6 +297,18 @@ class RequestOptimizer
 
         foreach ($messages as &$msg) {
             if (($msg['role'] ?? '') !== 'user') continue;
+            // OpenAI: content can be array of {type,text} parts
+            if (is_array($msg['content'] ?? null)) {
+                foreach ($msg['content'] as &$part) {
+                    if (($part['type'] ?? '') === 'text' && is_string($part['text'] ?? null)) {
+                        $orig = $part['text'];
+                        $c = preg_replace(self::FILLERS, '', $orig);
+                        $c = trim(preg_replace('/\s{2,}/', ' ', $c ?? $orig));
+                        if ($c !== $orig && strlen($c) > 10) { $part['text'] = $c; $removed++; }
+                    }
+                }
+                continue;
+            }
             if (!is_string($msg['content'] ?? null)) continue;
 
             $original = $msg['content'];
@@ -346,7 +389,12 @@ class RequestOptimizer
         $cap = self::MAX_TOKENS[$tier];
 
         // Always enforce — never let the client override the cap upward
-        $payload['max_tokens'] = $cap;
+        // OpenAI uses max_completion_tokens OR max_tokens
+        if (isset($payload['max_completion_tokens'])) {
+            $payload['max_completion_tokens'] = $cap;
+        } else {
+            $payload['max_tokens'] = $cap;
+        }
 
         return [$payload, $cap];
     }
