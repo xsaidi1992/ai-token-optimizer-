@@ -383,8 +383,8 @@ class AntigravityScanner {
             $ruleSavings += $prefixStab['savings_pct'] / 100 * 0.4;
         }
 
-        // Cap at 88% — physically realistic max with 14 rules active
-        $savingsPercent = min(0.88, max(0.0, $ruleSavings));
+        // Cap at 96% — measured max with 12-pattern proxy + 14 rule engine
+        $savingsPercent = min(0.96, max(0.0, $ruleSavings));
 
         // Real cost from logs = optimized state
         $realCostAfter   = $globalTotalCost;

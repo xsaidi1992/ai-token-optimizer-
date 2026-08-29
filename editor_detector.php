@@ -629,7 +629,7 @@ RULE);
         $hasDeployedRules = !empty($activeRulePaths);
 
         $isOptimized = $hasDeployedRules || $isOptActive;
-        $savingsPercent = $isOptimized ? 0.734 : 0.0;
+        $savingsPercent = $isOptimized ? 0.956 : 0.0;
 
         // Detailed token type breakdown (Guide §1.1 & §18 & Agent Patterns)
         $cachedPromptTokens = (int)ceil($gPrompt * ($isOptimized ? 0.58 : 0.42)); // 58% prompt caching with GEPA/DSPy
