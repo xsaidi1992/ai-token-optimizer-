@@ -185,6 +185,43 @@ Open: **`http://localhost:8080`**
 
 The proxy intercepts **every** Claude / Gemini API call in real time and applies 8 aggressive optimizations **before** forwarding the request. Your model choice is never changed — only the payload is compressed.
 
+### 🗺️ End-to-End Proxy Flow
+
+```mermaid
+flowchart TD
+    IDE["🖥️ IDE / Agent\n(Antigravity · Cursor · Claude Code…)\nANTHROPIC_BASE_URL=localhost:3100"]
+    PROXY["⚡ proxy/proxy.php\n:3100"]
+    OPT["🔧 proxy/optimizer.php\nRequestOptimizer"]
+
+    subgraph PIPELINE ["8-Pattern Optimization Pipeline"]
+        direction TB
+        P1["① System Prompt Slim\n→ truncate to 200 chars  (-10%)"]
+        P2["② Concision Directive Inject\n→ append [OPT:concise,diff-only,≤8lines]"]
+        P3["③ Lazy Tool Schemas\n→ max 5 tools · 40-char desc · strip $ref  (-40%)"]
+        P4["④ Tool Result Truncation\n→ cap at 100 lines  (-60% tool output)"]
+        P5["⑤ Filler Removal\n→ strip EN/FR filler phrases  (-10%)"]
+        P6["⑥ History Compression\n→ keep first 1 + last 8 msgs  (-55%)"]
+        P7["⑦ Deduplication\n→ drop consecutive identical msgs  (-5%)"]
+        P8["⑧ max_tokens Enforcement\n→ tier0=400 · tier1=1200 · tier2=3000  (-75% output)"]
+        P1 --> P2 --> P3 --> P4 --> P5 --> P6 --> P7 --> P8
+    end
+
+    UPSTREAM["☁️ Real AI API\n(Anthropic · Google · OpenAI)"]
+    STATS["📊 proxy_stats.json\n(last 200 requests · savings_pct · tokens_saved)"]
+    DASHBOARD["📈 Dashboard :8080\nReal-time KPIs · Savings · Benchmarks"]
+
+    IDE -->|"Raw request\n(full payload)"| PROXY
+    PROXY --> OPT
+    OPT --> PIPELINE
+    PIPELINE -->|"Optimized payload\n(up to -88% tokens)"| UPSTREAM
+    UPSTREAM -->|"Response (unchanged)"| PROXY
+    PROXY -->|"Transparent passthrough"| IDE
+    PIPELINE -.->|"Log savings"| STATS
+    STATS -.->|"api.php /scan"| DASHBOARD
+```
+
+> **Key insight:** the IDE sees a normal API — no code change required. 100% of the optimization happens inside the proxy, invisibly.
+
 | # | Optimization | Savings |
 | :---: | :--- | :---: |
 | 1 | **System prompt slim** — truncate to 200 chars | -10% system |
