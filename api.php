@@ -17,17 +17,22 @@ $ruleOptimizer = new RuleOptimizer();
 $editorDetector = new EditorDetector();
 
 try {
-    // System info — portable
+    // System info — fully dynamic per host machine
     if ($action === 'system_info') {
-        $homeDir = getenv('HOME') ?: '~';
+        $homeDir = getenv('HOME') ?: (getenv('USERPROFILE') ?: '/tmp');
+        $user = get_current_user() ?: getenv('USER') ?: 'user';
+        $hostname = gethostname() ?: 'localhost';
+        $homeShort = '~';
+        
         echo json_encode([
             'status' => 'success',
             'home_dir' => $homeDir,
-            'home_short' => '~',
+            'home_short' => $homeShort,
             'os' => PHP_OS_FAMILY,
             'php_version' => PHP_VERSION,
-            'hostname' => gethostname(),
-            'user' => get_current_user(),
+            'hostname' => $hostname,
+            'user' => $user,
+            'display_host' => "Machine : {$user}@{$hostname}",
             'workspace' => __DIR__,
         ]);
         exit;
@@ -47,7 +52,7 @@ try {
         exit;
     }
 
-    // FTS5 Memory Search (Hermes Pattern #4)
+    // FTS5 Memory Search (Pattern #4)
     if ($action === 'search_fts_memory') {
         require_once __DIR__ . '/memory_indexer.php';
         $mem = new MemoryIndexer();
@@ -57,7 +62,7 @@ try {
         exit;
     }
 
-    // Prompt Evolution Engine (GEPA / DSPy - Hermes Pattern #5)
+    // Prompt Evolution Engine (GEPA / DSPy - Pattern #5)
     if ($action === 'optimize_prompt') {
         $rawPrompt = $_POST['prompt'] ?? $_GET['prompt'] ?? '';
         $res = $ruleOptimizer->optimizePrompt($rawPrompt);
@@ -65,7 +70,7 @@ try {
         exit;
     }
 
-    // Skill Documents On-Demand (agentskills.io - Hermes Pattern #3)
+    // Skill Documents On-Demand (agentskills.io - Pattern #3)
     if ($action === 'resolve_skill') {
         $skillName = $_GET['skill'] ?? $_POST['skill'] ?? 'token_optimization';
         $content = $ruleOptimizer->resolveSkillDocument($skillName);
@@ -73,14 +78,14 @@ try {
         exit;
     }
 
-    // Tool Batching Instruction (Hermes Pattern #2)
+    // Tool Batching Instruction (Pattern #2)
     if ($action === 'get_batch_instruction') {
         $instruction = $ruleOptimizer->getBatchToolInstruction();
         echo json_encode(['status' => 'success', 'instruction' => $instruction]);
         exit;
     }
 
-    // Lazy Tool Schemas Optimizer (Hermes Pattern #1 - Guide §26)
+    // Lazy Tool Schemas Optimizer (Pattern #1 - Guide §26)
     if ($action === 'optimize_tool_schemas') {
         $rawSchemas = json_decode($_POST['schemas'] ?? $_GET['schemas'] ?? '[]', true);
         if (!is_array($rawSchemas) || empty($rawSchemas)) {

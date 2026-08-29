@@ -23,7 +23,7 @@
         </div>
         <div>
           <h1 class="brand-title">AI Token Optimizer</h1>
-          <p class="brand-subtitle">Universal Token Optimization Suite • 11 IDEs • Guide 2026</p>
+          <p class="brand-subtitle">Universal Token Optimization Suite • 12 Supported IDEs & AI Agents • Guide 2026</p>
         </div>
       </div>
       <div class="header-actions">
@@ -45,7 +45,7 @@
       <div style="display: flex; align-items: center; gap: 1rem;">
         <span style="font-size: 1.5rem;">🖥️</span>
         <div>
-          <span style="font-weight: 700; color: white;" id="sys-hostname">Détection...</span>
+          <span style="font-weight: 700; color: white;" id="sys-hostname">Détection machine...</span>
           <span style="font-size: 0.8rem; color: var(--text-muted); display: block;" id="sys-details">OS • PHP • Home</span>
         </div>
       </div>
@@ -108,6 +108,11 @@
         <div class="glass-card">
           <div class="kpi-card-header"><span>Requêtes</span><div class="kpi-icon violet"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div></div>
           <div class="kpi-value" id="global-requests">--</div>
+        </div>
+        <div class="glass-card" style="background: linear-gradient(135deg, rgba(16,185,129,0.18), rgba(6,182,212,0.12)); border: 1px solid rgba(16,185,129,0.4); box-shadow: 0 0 20px rgba(16,185,129,0.15);">
+          <div class="kpi-card-header"><span style="color: #10b981; font-weight: 700;">Gain $ / 100k Tokens</span><div class="kpi-icon emerald"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div></div>
+          <div class="kpi-value" style="font-size: 1.7rem; font-weight: 900; color: #10b981;" id="global-savings-100k">--</div>
+          <div class="kpi-subtext" id="global-savings-100k-sub" style="color: var(--text-muted); font-size: 0.75rem;">Avant: -- → Après: --</div>
         </div>
         <div class="glass-card">
           <div class="kpi-card-header"><span>Modèles / Pic</span><div class="kpi-icon amber"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/></svg></div></div>

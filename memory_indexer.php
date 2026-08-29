@@ -1,7 +1,7 @@
 <?php
 /**
  * Episodic Memory Indexer — AI Token Optimizer
- * Implements Hermes Agent Pattern #4: Episodic memory search & trajectory compression.
+ * Implements Pattern #4: Episodic FTS5 memory search & trajectory compression.
  * Works natively on all Linux environments (SQLite FTS5 + JSON fallback engine).
  */
 
@@ -40,8 +40,8 @@ class MemoryIndexer {
             $initial = [
                 ['session_id' => 'sess_001', 'role' => 'user', 'content' => 'How to optimize prompt tokens and reduce reasoning tax in Linux IDE agents?', 'timestamp' => time() - 3600],
                 ['session_id' => 'sess_001', 'role' => 'assistant', 'content' => 'Apply Guide 2026 rules: stable header prompt caching, noise exclusions, and lazy tool schemas.', 'timestamp' => time() - 3500],
-                ['session_id' => 'sess_002', 'role' => 'user', 'content' => 'What is the Hermes Agent pattern for memory retention?', 'timestamp' => time() - 1800],
-                ['session_id' => 'sess_002', 'role' => 'assistant', 'content' => 'Hermes Agent uses SQLite FTS5 episodic search with curated MEMORY.md and procedural skill documents.', 'timestamp' => time() - 1700],
+                ['session_id' => 'sess_002', 'role' => 'user', 'content' => 'What is the Agentic FTS5 pattern for memory retention?', 'timestamp' => time() - 1800],
+                ['session_id' => 'sess_002', 'role' => 'assistant', 'content' => 'Agentic Engine uses SQLite FTS5 episodic search with curated MEMORY.md and procedural skill documents.', 'timestamp' => time() - 1700],
             ];
             file_put_contents($this->jsonPath, json_encode($initial, JSON_PRETTY_PRINT));
         }

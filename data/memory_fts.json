@@ -14,13 +14,13 @@
     {
         "session_id": "sess_002",
         "role": "user",
-        "content": "What is the Hermes Agent pattern for memory retention?",
+        "content": "What is the Agentic FTS5 pattern for memory retention?",
         "timestamp": 1787946031
     },
     {
         "session_id": "sess_002",
         "role": "assistant",
-        "content": "Hermes Agent uses SQLite FTS5 episodic search with curated MEMORY.md and procedural skill documents.",
+        "content": "Agentic Engine uses SQLite FTS5 episodic search with curated MEMORY.md and procedural skill documents.",
         "timestamp": 1787946131
     }
 ]

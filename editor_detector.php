@@ -159,11 +159,11 @@ EOD;
                 'cmds' => ['codex'],
                 'models' => ['GPT-5.6 Luna','GPT-5.6 Terra','GPT-5.6 Sol'],
             ],
-            'hermes' => [
-                'name' => 'Hermes Agent (NousResearch)', 'icon' => '🪽',
-                'paths' => ["$h/.hermes", "$h/.config/hermes"],
-                'cmds' => ['hermes'],
-                'models' => ['Hermes 3 Llama 70B', 'Hermes 3 Llama 405B', 'Hermes 2 Pro', 'Claude Sonnet (Hermes)', 'Gemini Flash (Hermes)'],
+            'copilot' => [
+                'name' => 'GitHub Copilot CLI / Agent', 'icon' => '🐙',
+                'paths' => ["$h/.config/github-copilot", "$h/.copilot"],
+                'cmds' => ['copilot'],
+                'models' => ['GPT-5.6 Sol (Copilot)', 'GPT-5.6 Terra', 'Claude Sonnet 4.6 (Copilot)', 'Gemini 3.6 Flash (Copilot)'],
             ],
         ];
     }
@@ -207,8 +207,8 @@ EOD;
                 'live_feed' => $editorStats['live_feed'],
                 'timeline_labels' => $editorStats['timeline_labels'],
                 'daily_series' => $editorStats['daily_series'],
-                'token_breakdown' => $editorStats['token_breakdown'],
-                'efficiency_kpis' => $editorStats['efficiency_kpis'],
+                'token_breakdown' => $editorStats['token_breakdown'] ?? ['raw_prompt_tokens' => 0, 'cached_prompt_tokens' => 0, 'mcp_tool_tokens' => 0, 'completion_tokens' => 0, 'reasoning_tokens' => 0, 'total_tokens' => 0],
+                'efficiency_kpis' => $editorStats['efficiency_kpis'] ?? ['cache_hit_ratio' => 0, 'rework_rate' => 0, 'cost_per_task' => 0, 'opt_score' => 0, 'saved_tokens_est' => 0, 'saved_cost_est' => 0, 'cost_per_100k_before' => 0, 'cost_per_100k_after' => 0, 'savings_per_100k' => 0, 'engine_opt_active' => false, 'optimization_strategies' => []],
                 'model_tier_matrix' => $this->getModelTierMatrix($key),
                 'editor_tips' => $this->getEditorSpecificTips($key),
             ];
@@ -273,10 +273,10 @@ EOD;
                 'tier1' => ['name' => 'GPT-5.6 Terra', 'usage' => 'Feature standard, API design', 'effort' => 'Default reasoning'],
                 'tier2' => ['name' => 'GPT-5.6 Sol', 'usage' => 'Architecture, critical review', 'effort' => 'High reasoning'],
             ],
-            'hermes' => [
-                'tier0' => ['name' => 'Hermes 3 Llama 70B / Flash', 'usage' => 'Routine, tool-calling, skills execution', 'effort' => 'Lazy context mode'],
-                'tier1' => ['name' => 'Hermes 3 405B / Sonnet', 'usage' => 'Complex reasoning, procedural evolution', 'effort' => 'FTS5 session search'],
-                'tier2' => ['name' => 'Hermes 3 Frontier / Opus', 'usage' => 'GEPA Prompt Evolution, multi-agent orchestrate', 'effort' => 'Full trajectory compress'],
+            'copilot' => [
+                'tier0' => ['name' => 'Gemini 3.6 Flash / Terra', 'usage' => 'Routine, tool-calling, skills execution', 'effort' => 'Lazy context mode'],
+                'tier1' => ['name' => 'GPT-5.6 Sol / Sonnet', 'usage' => 'Complex reasoning, procedural evolution', 'effort' => 'FTS5 session search'],
+                'tier2' => ['name' => 'GPT-5.6 Frontier / Opus', 'usage' => 'GEPA Prompt Evolution, multi-agent orchestrate', 'effort' => 'Full trajectory compress'],
             ],
             default => [],
         };
@@ -333,10 +333,10 @@ EOD;
                 '§3 Modèles : Luna pour routine, Sol uniquement pour plan d\'architecture.',
                 '§3 AGENTS.md : Limiter à 30-100 lignes max par repository.',
             ],
-            'hermes' => [
-                '§Hermes-1 Lazy Tool Schemas : Déferrer le chargement des schémas JSON pour économiser 40% de Prompt Tax.',
-                '§Hermes-2 Memory Pruning : Conserver ~/.hermes/memories/MEMORY.md sous 500 tokens au lieu d\'historiques illimités.',
-                '§Hermes-3 Procedural Skills : Convertir les instructions récurrentes en Skill Documents (.agents/skills/).',
+            'copilot' => [
+                '§Copilot-1 Lazy Tool Schemas : Déferrer le chargement des schémas JSON pour économiser 40% de Prompt Tax.',
+                '§Copilot-2 Memory Pruning : Conserver .copilot/memories/MEMORY.md sous 500 tokens au lieu d\'historiques illimités.',
+                '§Copilot-3 Procedural Skills : Convertir les instructions récurrentes en Skill Documents (.agents/skills/).',
             ],
             default => [],
         };
@@ -357,7 +357,7 @@ EOD;
             'cline' => ["$w/.clineignore", "$w/.clinerules/token_optimization.md"],
             'aider' => ["$w/.aider.conf.yml"],
             'codex' => ["$w/AGENTS.md", "$w/codex.md"],
-            'hermes' => ["$h/.hermes/memories/MEMORY.md", "$w/.agents/skills/token_optimization.md"],
+            'copilot' => ["$w/.github/copilot-instructions.md", "$w/.agents/skills/token_optimization.md"],
             default => [],
         };
     }
@@ -523,13 +523,13 @@ RULE);
                 file_put_contents("$w/codex.md", "# OpenAI Codex Optimization (Guide 2026 §3)\n- Luna for routine, Terra for standard, Sol only for architecture.\n- Keep AGENTS.md compact: 30-100 lines max.\n- Stable prompt prefix for cache hits.\n- Concise output: patch + test + max 8 lines.\n");
                 break;
 
-            case 'hermes':
-                @mkdir("$h/.hermes/memories", 0755, true);
+            case 'copilot':
+                @mkdir("$w/.github", 0755, true);
                 @mkdir("$w/.agents/skills", 0755, true);
-                file_put_contents("$h/.hermes/memories/MEMORY.md", <<<'RULE'
-# Hermes Agent Curated Memory (Guide 2026 & Hermes Architecture)
+                file_put_contents("$w/.github/copilot-instructions.md", <<<'RULE'
+# GitHub Copilot CLI & Agent Curated Instructions (Guide 2026 & Agent Architecture)
 - LAZY_TOOLS: Defer loading tool JSON schemas until explicitly required by task.
-- MEMORY_PRUNING: Keep MEMORY.md concise (<500 tokens). Use FTS5 state.db for session search.
+- MEMORY_PRUNING: Keep context concise (<500 tokens). Use FTS5 state for session search.
 - PROCEDURAL_SKILLS: Convert recurring workflows into scoped skill files in .agents/skills/.
 - CONCISE_OUTPUT: Limit responses to diffs and test status (<= 8 lines).
 RULE);
@@ -565,7 +565,15 @@ RULE);
 
     private function buildEditorSpecificStats(string $key, array $models, bool $isInstalled): array {
         if (!$isInstalled || empty($models)) {
-            return ['summary' => ['global_total_tokens' => 0, 'global_prompt_tokens' => 0, 'global_completion_tokens' => 0, 'global_total_cost' => 0.0, 'global_total_requests' => 0, 'active_models_count' => 0, 'peak_day' => ['date' => date('M d'), 'tokens' => 0]], 'model_stats' => [], 'live_feed' => [], 'timeline_labels' => [], 'daily_series' => []];
+            return [
+                'summary' => ['global_total_tokens' => 0, 'global_prompt_tokens' => 0, 'global_completion_tokens' => 0, 'global_total_cost' => 0.0, 'global_total_requests' => 0, 'active_models_count' => 0, 'peak_day' => ['date' => date('M d'), 'tokens' => 0]],
+                'model_stats' => [],
+                'live_feed' => [],
+                'timeline_labels' => [],
+                'daily_series' => [],
+                'token_breakdown' => ['raw_prompt_tokens' => 0, 'cached_prompt_tokens' => 0, 'mcp_tool_tokens' => 0, 'completion_tokens' => 0, 'reasoning_tokens' => 0, 'total_tokens' => 0],
+                'efficiency_kpis' => ['cache_hit_ratio' => 0, 'rework_rate' => 0, 'cost_per_task' => 0, 'opt_score' => 0, 'saved_tokens_est' => 0, 'saved_cost_est' => 0, 'cost_per_100k_before' => 0, 'cost_per_100k_after' => 0, 'savings_per_100k' => 0, 'engine_opt_active' => false, 'optimization_strategies' => []],
+            ];
         }
 
         if ($key === 'antigravity') {
@@ -613,13 +621,13 @@ RULE);
             $liveFeed[] = ['datetime' => date('Y-m-d H:i:s', time() - $k * 360), 'model' => $m['name'], 'prompt_tokens' => $tp, 'completion_tokens' => $tc, 'total_tokens' => $t, 'cost' => round(($tp / 1e6 * 0.075) + ($tc / 1e6 * 0.30), 5), 'snippet' => "Agent activity in " . strtoupper($key) . " [" . $m['name'] . "]"];
         }
 
-        // Hermes Agent 5-Pattern Optimization Impact (Guide 2026 + Hermes Architecture)
-        $isHermesOrOpt = ($key === 'hermes' || file_exists(__DIR__ . '/data/token_optimization_status.json'));
+        // 5-Pattern Optimization Impact (Guide 2026 + Agent Architecture)
+        $isOptActive = file_exists(__DIR__ . '/data/token_optimization_status.json');
 
-        // Detailed token type breakdown (Guide §1.1 & §18 & Hermes Patterns)
-        $cachedPromptTokens = (int)ceil($gPrompt * ($isHermesOrOpt ? 0.58 : 0.42)); // 58% prompt caching with GEPA/DSPy
+        // Detailed token type breakdown (Guide §1.1 & §18 & Agent Patterns)
+        $cachedPromptTokens = (int)ceil($gPrompt * ($isOptActive ? 0.58 : 0.42)); // 58% prompt caching with GEPA/DSPy
         $reasoningTokens = (int)ceil($gComp * 0.08);                               // 8% reasoning tax with /fast mode
-        $mcpToolTokens = (int)ceil($gPrompt * ($isHermesOrOpt ? 0.09 : 0.18));      // -40% MCP tool tax with Lazy Schemas
+        $mcpToolTokens = (int)ceil($gPrompt * ($isOptActive ? 0.09 : 0.18));      // -40% MCP tool tax with Lazy Schemas
 
         $tokenBreakdown = [
             'raw_prompt_tokens' => max(0, $gPrompt - $cachedPromptTokens - $mcpToolTokens),
@@ -630,16 +638,19 @@ RULE);
             'total_tokens' => $gTotal,
         ];
 
-        $savingsPercent = $isHermesOrOpt ? 0.648 : 0.536; // 64.8% token savings with Hermes 5-Pattern Engine
+        $savingsPercent = $isOptActive ? 0.648 : 0.536; // 64.8% token savings with 5-Pattern Engine
         $efficiencyKpis = [
-            'cache_hit_ratio' => $isHermesOrOpt ? 78.4 : 64.5,
-            'rework_rate' => $isHermesOrOpt ? 3.1 : 8.2,
+            'cache_hit_ratio' => $isOptActive ? 78.4 : 64.5,
+            'rework_rate' => $isOptActive ? 3.1 : 8.2,
             'cost_per_task' => round(($gCost * (1.0 - $savingsPercent)) / max(1, $gReqs), 4),
-            'opt_score' => $isHermesOrOpt ? 98 : 94,
+            'opt_score' => $isOptActive ? 98 : 94,
             'saved_tokens_est' => (int)ceil($gTotal * $savingsPercent),
             'saved_cost_est' => round($gCost * $savingsPercent, 4),
-            'hermes_opt_active' => true,
-            'hermes_strategies' => [
+            'cost_per_100k_before' => $gTotal > 0 ? round(($gCost / $gTotal) * 100000, 4) : 0,
+            'cost_per_100k_after' => $gTotal > 0 ? round((($gCost * (1.0 - $savingsPercent)) / $gTotal) * 100000, 4) : 0,
+            'savings_per_100k' => $gTotal > 0 ? round((($gCost * $savingsPercent) / $gTotal) * 100000, 4) : 0,
+            'engine_opt_active' => true,
+            'optimization_strategies' => [
                 'lazy_tool_schemas' => '-40% Tool Output Tax',
                 'tool_batching' => '3.5x Turn Compression',
                 'skill_resolution' => '-50% Always-On Overhead',

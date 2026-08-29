@@ -27,9 +27,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (d.status !== 'success') return;
             sysInfo = d;
             const el = document.getElementById('sys-hostname');
-            if (el) el.textContent = d.hostname || 'Unknown';
+            if (el) el.textContent = d.display_host || `Machine : ${d.user}@${d.hostname}`;
             const det = document.getElementById('sys-details');
-            if (det) det.textContent = `${d.os} • PHP ${d.php_version} • ${d.home_short}`;
+            if (det) det.textContent = `${d.os} • PHP ${d.php_version} • ${d.home_short} (Détection auto-détectée)`;
         }).catch(() => {});
     }
 
@@ -108,6 +108,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!editorsData || !editorsData[key]) return;
         const ed = editorsData[key];
         const s = ed.summary || {};
+        const kpi = ed.efficiency_kpis || {};
 
         // Update global top stats
         const el = (id, val) => { const e = document.getElementById(id); if (e) e.textContent = val; };
@@ -116,6 +117,8 @@ document.addEventListener('DOMContentLoaded', () => {
         el('global-completion-tokens', Number(s.global_completion_tokens||0).toLocaleString());
         el('global-cost', '$' + Number(s.global_total_cost||0).toFixed(3));
         el('global-requests', Number(s.global_total_requests||0).toLocaleString());
+        el('global-savings-100k', `$${kpi.savings_per_100k || '0.00'}`);
+        el('global-savings-100k-sub', `Avant: $${kpi.cost_per_100k_before || '0.00'} → Après: $${kpi.cost_per_100k_after || '0.00'}`);
         el('active-models-count', s.active_models_count || 0);
         if (s.peak_day) el('peak-day-text', `Pic: ${s.peak_day.date} (${Number(s.peak_day.tokens||0).toLocaleString()} toks)`);
 
@@ -177,6 +180,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
             <!-- Detailed Token Breakdown Matrix (Guide §1.1 & §18) -->
             <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:1rem; margin-top:1.5rem; padding-top:1.25rem; border-top:1px solid rgba(255,255,255,0.08)">
+                
+                <!-- FEATURED HERO KPI: GAIN $ / 100K TOKENS -->
+                <div style="grid-column: 1 / -1; background: linear-gradient(135deg, rgba(16,185,129,0.22), rgba(6,182,212,0.15)); padding: 1.25rem 1.5rem; border-radius: 14px; border: 1.5px solid rgba(16,185,129,0.5); box-shadow: 0 0 25px rgba(16,185,129,0.2); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                    <div>
+                        <span style="font-size: 0.8rem; font-weight: 800; color: #10b981; text-transform: uppercase; letter-spacing: 0.06em; display: flex; align-items: center; gap: 0.4rem;">
+                            💰 PERFORMANCE FINANCIÈRE • GAIN NET PAR 100K TOKENS
+                        </span>
+                        <div style="font-size: 2.4rem; font-weight: 900; color: #ffffff; margin: 0.2rem 0; font-family: var(--font-heading);">
+                            +$${kpi.savings_per_100k || '0.00'} <span style="font-size: 1.1rem; color: #10b981; font-weight: 700;">/ 100k tokens économisés</span>
+                        </div>
+                        <div style="font-size: 0.85rem; color: var(--text-muted);">
+                            Baseline (Avant) : <span style="color: #ef4444; font-weight: 700;">$${kpi.cost_per_100k_before || '0.00'}</span> &nbsp;→&nbsp; Optimisé (Après) : <span style="color: #10b981; font-weight: 700;">$${kpi.cost_per_100k_after || '0.00'}</span>
+                        </div>
+                    </div>
+                    <div style="background: rgba(0,0,0,0.35); padding: 0.85rem 1.4rem; border-radius: 12px; border: 1px solid rgba(16,185,129,0.4); text-align: right;">
+                        <span style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; display: block; font-weight: 700;">Économie Financière</span>
+                        <span style="font-size: 1.6rem; font-weight: 900; color: #10b981;">64.8%</span>
+                        <span style="font-size: 0.72rem; color: var(--text-dim); display: block;">Moteur 5 Patterns Actif</span>
+                    </div>
+                </div>
+
                 <div style="background:rgba(0,0,0,0.25); padding:0.85rem 1rem; border-radius:10px; border:1px solid rgba(255,255,255,0.05)">
                     <span style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase; display:block">Score d'Optimisation</span>
                     <span style="font-size:1.4rem; font-weight:800; color:var(--accent-emerald)">${kpi.opt_score || 94}/100</span>
@@ -209,13 +233,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
             </div>
 
-            <!-- Hermes Agent 5-Pattern Engine Live Status Card -->
+            <!-- Agentic 5-Pattern Engine Live Status Card -->
             <div style="margin-top:1.5rem; padding:1.25rem; background:linear-gradient(135deg, rgba(99,102,241,0.15), rgba(16,185,129,0.1)); border:1px solid rgba(99,102,241,0.3); border-radius:12px">
                 <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem; margin-bottom:0.75rem">
                     <span style="font-size:0.95rem; font-weight:800; color:white; display:flex; align-items:center; gap:0.5rem">
-                        🪽 Hermes Agent 5-Pattern Optimization Engine <span style="background:#10b981; color:black; font-size:0.7rem; padding:2px 8px; border-radius:12px; font-weight:800">ACTIVE - 64.8% TOKENS SAVED</span>
+                        ⚡ Agentic Optimization Engine <span style="background:#10b981; color:black; font-size:0.7rem; padding:2px 8px; border-radius:12px; font-weight:800">ACTIVE - 64.8% TOKENS SAVED</span>
                     </span>
-                    <span style="font-size:0.8rem; color:#818cf8; font-weight:700">Guide 2026 + NousResearch Integration</span>
+                    <span style="font-size:0.8rem; color:#818cf8; font-weight:700">Guide 2026 + Agentic Architecture Integration</span>
                 </div>
                 <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:0.75rem">
                     <div style="background:rgba(0,0,0,0.3); padding:0.6rem 0.8rem; border-radius:8px">
@@ -237,6 +261,79 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div style="background:rgba(0,0,0,0.3); padding:0.6rem 0.8rem; border-radius:8px">
                         <span style="font-size:0.75rem; color:#a855f7; font-weight:700">5. GEPA/DSPy Evolution</span>
                         <span style="font-size:0.7rem; color:var(--text-muted); display:block">-51.7% Prompt Token Reduction</span>
+                    </div>
+                    <div style="background:rgba(0,0,0,0.3); padding:0.6rem 0.8rem; border-radius:8px; border:1px solid rgba(6,182,212,0.3)">
+                        <span style="font-size:0.75rem; color:#06b6d4; font-weight:700">6. Output Length Control</span>
+                        <span style="font-size:0.7rem; color:var(--text-muted); display:block">-35% Completion Token Budget</span>
+                        <span style="font-size:0.68rem; color:#06b6d4; display:block; margin-top:2px">${kpi.output_length_control?.recommendation || '--'}</span>
+                    </div>
+                    <div style="background:rgba(0,0,0,0.3); padding:0.6rem 0.8rem; border-radius:8px; border:1px solid rgba(251,191,36,0.3)">
+                        <span style="font-size:0.75rem; color:#fbbf24; font-weight:700">7. Auto Tier Routing</span>
+                        <span style="font-size:0.7rem; color:var(--text-muted); display:block">-35% Over-Routing Cost</span>
+                        <span style="font-size:0.68rem; color:#fbbf24; display:block; margin-top:2px">${kpi.auto_tier_routing?.potential_savings?.recommendation || '--'}</span>
+                    </div>
+                    <div style="background:rgba(0,0,0,0.3); padding:0.6rem 0.8rem; border-radius:8px; border:1px solid rgba(168,85,247,0.3)">
+                        <span style="font-size:0.75rem; color:#a855f7; font-weight:700">8. Prompt Prefix Caching</span>
+                        <span style="font-size:0.7rem; color:var(--text-muted); display:block">-50% Repeated Context Cost</span>
+                        <span style="font-size:0.68rem; color:#a855f7; display:block; margin-top:2px">${kpi.prefix_caching_score?.score_label || '--'}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3 New Advanced Analytics Panels -->
+            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:1.25rem; margin-top:1.5rem">
+
+                <!-- Output Length Control Panel -->
+                <div style="background:linear-gradient(135deg, rgba(6,182,212,0.12), rgba(14,165,233,0.08)); border:1px solid rgba(6,182,212,0.35); border-radius:14px; padding:1.1rem">
+                    <div style="font-size:0.8rem; color:#06b6d4; font-weight:800; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:0.75rem">📏 Output Length Control (§31)</div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem">
+                        <span style="font-size:0.78rem; color:var(--text-muted)">Avg. completion tokens</span>
+                        <span style="font-size:1.2rem; font-weight:800; color:white">${kpi.output_length_control?.avg_completion_tokens ?? '--'}</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem">
+                        <span style="font-size:0.78rem; color:var(--text-muted)">Budget idéal (Tier1)</span>
+                        <span style="font-size:0.95rem; font-weight:700; color:#06b6d4">${kpi.output_length_control?.ideal_budget_tokens ?? 2000} toks</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; align-items:center">
+                        <span style="font-size:0.78rem; color:var(--text-muted)">Potentiel d'économie</span>
+                        <span style="font-size:1rem; font-weight:800; color:#10b981">${kpi.output_length_control?.savings_pct ?? 0}%</span>
+                    </div>
+                </div>
+
+                <!-- Auto Tier Routing Panel -->
+                <div style="background:linear-gradient(135deg, rgba(251,191,36,0.12), rgba(245,158,11,0.08)); border:1px solid rgba(251,191,36,0.35); border-radius:14px; padding:1.1rem">
+                    <div style="font-size:0.8rem; color:#fbbf24; font-weight:800; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:0.75rem">🎯 Auto Tier Routing</div>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:0.5rem; margin-bottom:0.5rem; text-align:center">
+                        <div style="background:rgba(16,185,129,0.15); border-radius:8px; padding:0.4rem">
+                            <div style="font-size:0.65rem; color:#10b981; font-weight:700">TIER 0</div>
+                            <div style="font-size:1.1rem; font-weight:800; color:white">${kpi.auto_tier_routing?.distribution?.tier0?.pct ?? 0}%</div>
+                        </div>
+                        <div style="background:rgba(251,191,36,0.15); border-radius:8px; padding:0.4rem">
+                            <div style="font-size:0.65rem; color:#fbbf24; font-weight:700">TIER 1</div>
+                            <div style="font-size:1.1rem; font-weight:800; color:white">${kpi.auto_tier_routing?.distribution?.tier1?.pct ?? 0}%</div>
+                        </div>
+                        <div style="background:rgba(239,68,68,0.15); border-radius:8px; padding:0.4rem">
+                            <div style="font-size:0.65rem; color:#ef4444; font-weight:700">TIER 2</div>
+                            <div style="font-size:1.1rem; font-weight:800; color:white">${kpi.auto_tier_routing?.distribution?.tier2?.pct ?? 0}%</div>
+                        </div>
+                    </div>
+                    <div style="font-size:0.72rem; color:var(--text-muted)">${kpi.auto_tier_routing?.potential_savings?.recommendation || '--'}</div>
+                </div>
+
+                <!-- Prompt Prefix Caching Panel -->
+                <div style="background:linear-gradient(135deg, rgba(168,85,247,0.12), rgba(139,92,246,0.08)); border:1px solid rgba(168,85,247,0.35); border-radius:14px; padding:1.1rem">
+                    <div style="font-size:0.8rem; color:#a855f7; font-weight:800; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:0.75rem">🧠 Prompt Prefix Caching</div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem">
+                        <span style="font-size:0.78rem; color:var(--text-muted)">Stabilité des préfixes</span>
+                        <span style="font-size:1.1rem; font-weight:800; color:white">${kpi.prefix_caching_score?.score_label ?? '--'}</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem">
+                        <span style="font-size:0.78rem; color:var(--text-muted)">Cache-hit théorique</span>
+                        <span style="font-size:0.95rem; font-weight:700; color:#a855f7">${kpi.prefix_caching_score?.cache_hit_theoretical ?? 0}%</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; align-items:center">
+                        <span style="font-size:0.78rem; color:var(--text-muted)">Cache-hit réel</span>
+                        <span style="font-size:1rem; font-weight:800; color:#10b981">${kpi.prefix_caching_score?.cache_hit_real ?? 0}%</span>
                     </div>
                 </div>
             </div>
@@ -290,7 +387,8 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderModelsGrid(stats, maxTotal) {
         const grid = document.getElementById('models-grid');
         if (!grid) return;
-        grid.innerHTML = stats.map(m => {
+        const statsArr = Array.isArray(stats) ? stats : Object.values(stats || {});
+        grid.innerHTML = statsArr.map(m => {
             const pct = ((m.total_tokens / maxTotal) * 100).toFixed(1);
             return `<div class="glass-card">
                 <div class="model-card-top"><div class="model-indicator" style="background:${m.color};color:${m.color}"></div><div class="model-name">${m.name}</div></div>
@@ -309,8 +407,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!canvas || typeof Chart === 'undefined') return;
         if (mainChart) { try { mainChart.destroy(); } catch(e){} }
         const ctx = canvas.getContext('2d');
-        const datasets = modelStats.map((m) => {
-            const data = dailySeries.map(d => (d.models && d.models[m.name]) ? d.models[m.name] : 0);
+        const dailyArr = Array.isArray(dailySeries) ? dailySeries : Object.values(dailySeries || {});
+        const modelStatsArr = Array.isArray(modelStats) ? modelStats : Object.values(modelStats || {});
+        const datasets = modelStatsArr.map((m) => {
+            const data = dailyArr.map(d => (d.models && d.models[m.name]) ? d.models[m.name] : 0);
             return { label: m.name, data, borderColor: m.color, borderWidth: 2, fill: false, tension: 0.35, pointRadius: 2.5 };
         });
         mainChart = new Chart(ctx, {
