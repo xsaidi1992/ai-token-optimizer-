@@ -176,50 +176,50 @@ SKILL;
      * Write real markdown rule file into Antigravity system rules folder
      */
     private function applyRealRuleFile(): void {
+        // Ultra-slim rule — long rules consume tokens themselves on every turn
         $ruleContent = <<<'EOD'
-# AI Token Optimizer — Enforcement Rules (Guide 2026)
-# Auto-applied on every turn via always-on rule
-
-<token_optimization_rules>
-MODEL_ROUTING:
-  - mechanical (rename, lint, format, commit): Flash + reasoning=low
-  - feature / refactor / test: Flash + reasoning=default
-  - architecture / security / race-condition: Pro + reasoning=high (plan only, then drop to Flash)
-  - NEVER start with Sonnet/Opus/Pro for a task that fits Flash
-
-SESSION_MANAGEMENT:
-  - ONE task = ONE session. New topic → /fork or new chat.
-  - At 50% context fill → /compact immediately.
-  - Do not carry yesterday's context into today.
-
-CONTEXT_DISCIPLINE:
-  - Search with rg/grep before reading any file.
-  - Read only files required for this specific task.
-  - Never inject full repo, node_modules, dist, build, logs.
-  - Truncate tool output to 150 lines max.
-
-OUTPUT_CONTROL:
-  - Final response <= 8 lines unless code diff.
-  - Return diff not full file rewrite.
-  - One line per passing test. Error only on failure.
-
-MCP_TOOLS:
-  - Disable browser, DB, and cloud MCPs unless explicitly needed.
-  - Expose max 5 tools per task, not all available tools.
-</token_optimization_rules>
+<tok>
+MODEL: Flash first. Pro/Sonnet only if Flash fails or architecture task.
+SESSION: 1 task=1 session. /compact at 50% fill. Fork for new topic.
+CONTEXT: rg/grep before read. 150 lines max tool output. No dist/node_modules.
+OUTPUT: diff not full file. <=8 lines. Error only on failure.
+MCP: max 5 tools active. Disable unused servers.
+</tok>
 EOD;
 
         $geminiMd = <<<'GEMINI'
-# Global Gemini Preferences (Guide 2026 §6.4)
-- Search narrowly before reading files.
-- Concise outputs (<= 8 lines).
-- Run narrowest relevant test first.
-- Do not scan generated dependencies unless required.
-- Default model: Flash. Use Pro/Thinking ONLY for architecture or failed attempts.
-- Reasoning effort: low by default. Escalate to medium only if low fails.
-- New session for each new task. Compact at 50% context fill.
-- Disable unused MCP servers before starting.
+# Guide 2026 §6.4
+- rg/grep before reading files.
+- <=8 lines response.
+- Narrowest test first.
+- No generated deps unless required.
+- Flash default. Pro/Sonnet only if Flash fails.
+- Reasoning: low. Escalate only on failure.
 GEMINI;
+
+        $geminiIgnore = <<<'IGNORE'
+# AI Token Optimizer — prevents large file context injection
+node_modules/
+.venv/
+venv/
+__pycache__/
+dist/
+build/
+*.min.js
+*.min.css
+*.lock
+package-lock.json
+yarn.lock
+*.log
+*.cache
+*.pyc
+.git/
+coverage/
+*.map
+vendor/
+IGNORE;
+
+        $homeDir = getenv('HOME') ?: '/tmp';
 
         @mkdir($this->rulesDir, 0755, true);
         @mkdir(__DIR__ . '/.gemini/rules', 0755, true);
@@ -228,18 +228,21 @@ GEMINI;
         file_put_contents(__DIR__ . '/.gemini/rules/token_optimization.md', $ruleContent);
 
         // Enforce Flash as default model in ~/.gemini/config/config.json
-        $homeDir   = getenv('HOME') ?: '/tmp';
-        $cfgPath   = $homeDir . '/.gemini/config/config.json';
-        $cfg       = file_exists($cfgPath) ? (json_decode(file_get_contents($cfgPath), true) ?: []) : [];
+        $cfgPath = $homeDir . '/.gemini/config/config.json';
+        $cfg     = file_exists($cfgPath) ? (json_decode(file_get_contents($cfgPath), true) ?: []) : [];
         $cfg['userSettings'] = array_merge($cfg['userSettings'] ?? [], [
             'selectedModel'  => 'gemini-2.5-flash',
             'preferredModel' => 'gemini-2.5-flash',
         ]);
         file_put_contents($cfgPath, json_encode($cfg, JSON_PRETTY_PRINT));
 
-        // Update global GEMINI.md with model routing directive
+        // Update global GEMINI.md (slim)
         $geminiMdPath = $homeDir . '/.gemini/GEMINI.md';
         file_put_contents($geminiMdPath, $geminiMd);
+
+        // Deploy .geminiignore to prevent large file context injection
+        file_put_contents($homeDir . '/.geminiignore', $geminiIgnore);
+
     }
 
 
