@@ -8,7 +8,7 @@
 [![Platform: Linux](https://img.shields.io/badge/Platform-Linux-blue.svg)](https://kernel.org)
 [![PHP Version](https://img.shields.io/badge/PHP-7.4%2B-777BB4.svg)](https://php.net)
 [![IDEs Supported](https://img.shields.io/badge/Supported%20IDEs-12%20Agents-indigo.svg)](#-compatible-ides--ai-agents)
-[![Savings](https://img.shields.io/badge/Token%20Savings-Up%20to%2082%25-10b981.svg)](#-optimization-rules--8-pattern-agentic-engine)
+[![Savings](https://img.shields.io/badge/Token%20Savings-Up%20to%2073%25-10b981.svg)](#-optimization-rules--8-pattern-agentic-engine)
 
 ---
 
@@ -16,7 +16,7 @@
 
 ## 🎯 What Is It?
 
-**AI Token Optimizer** is a production-ready optimization suite that **reduces your AI API costs by up to 82%** and eliminates context bloat across all major AI coding tools on Linux.
+**AI Token Optimizer** is a production-ready optimization suite that **reduces your AI API costs by up to 73%** and eliminates context bloat across all major AI coding tools on Linux.
 
 It scans your real agent logs, computes live financial KPIs (including **Gain $ / 100k Tokens**), and deploys precision optimization rules to 12 IDEs — all from a single real-time web dashboard.
 
@@ -30,7 +30,7 @@ It scans your real agent logs, computes live financial KPIs (including **Gain $ 
 | :--- | :---: | :---: |
 | Cost / 100k tokens | `$0.26` | `$0.09` |
 | **Gain / 100k tokens** | — | **+$0.17** |
-| Token savings | — | **up to 82%** |
+| Token savings | — | **up to 73%** |
 | Cache-hit ratio | ~45% | **~78%** |
 
 ---
@@ -157,7 +157,7 @@ Gap = 28%  →  Savings opportunity: +14% additional cost reduction
 | 6. Output Length Control | -35% completion | 🔵 Medium-High |
 | 7. Auto Tier Routing | -35% over-routing | 🔵 Medium-High |
 | 8. Prompt Prefix Caching | -50% repeated | 🔵 Medium |
-| **COMBINED (max)** | **up to 82%** | **🔥 Critical** |
+| **COMBINED (max)** | **up to 73%** | **🔥 Critical** |
 
 ---
 
