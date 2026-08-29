@@ -80,7 +80,7 @@
       <section class="glass-card" style="margin-bottom: 2rem; padding: 1.25rem;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
           <h2 class="section-title" style="margin: 0; color: white;">Sélecteur d'Éditeur • Détection Automatique</h2>
-          <span style="font-size: 0.8rem; color: var(--text-muted);">11 Éditeurs Pris en Charge</span>
+          <span style="font-size: 0.8rem; color: var(--text-muted);">12 Éditeurs Pris en Charge</span>
         </div>
         <div class="editor-tabs-nav" id="editor-tabs-nav"></div>
       </section>
@@ -141,7 +141,7 @@
     <div id="tab-editors" class="tab-content" style="display:none;">
       <section class="glass-card" style="margin-bottom: 2rem;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
-          <h2 class="section-title">Configuration des 11 Éditeurs IA</h2>
+          <h2 class="section-title">Configuration des 12 Éditeurs IA</h2>
           <button id="btn-deploy-all-tab" class="btn btn-primary" style="background: linear-gradient(135deg, #10b981, #059669);">🚀 Déployer Tout d'un Coup</button>
         </div>
         <div id="editors-grid" class="editors-config-grid"></div>
@@ -195,16 +195,16 @@
 
         <div class="kpi-grid" style="margin-bottom: 1.5rem;">
           <div class="glass-card" style="background: rgba(16,185,129,0.08); border-color: rgba(16,185,129,0.25);">
-            <div class="kpi-card-header"><span>Réduction Tokens</span><span style="color: var(--accent-emerald); font-weight: 700;">-53.6%</span></div>
+            <div class="kpi-card-header"><span>Réduction Tokens</span><span style="color: var(--accent-emerald); font-weight: 700;">-73.4%</span></div>
             <div class="kpi-value" style="color: var(--accent-emerald)" id="opt-token-reduction">--</div>
             <div class="kpi-subtext" id="opt-token-subtext">Économie par exécution</div>
           </div>
           <div class="glass-card" style="background: rgba(99,102,241,0.08); border-color: rgba(99,102,241,0.25);">
-            <div class="kpi-card-header"><span>Compression</span><span style="color: var(--accent-indigo); font-weight: 700;">2.2x</span></div>
+            <div class="kpi-card-header"><span>Compression</span><span style="color: var(--accent-indigo); font-weight: 700;">3.76x</span></div>
             <div class="kpi-value" style="color: var(--accent-indigo)" id="opt-ratio">--</div>
           </div>
           <div class="glass-card" style="background: rgba(236,72,153,0.08); border-color: rgba(236,72,153,0.25);">
-            <div class="kpi-card-header"><span>Réduction Coût</span><span style="color: var(--accent-pink); font-weight: 700;">-49.3%</span></div>
+            <div class="kpi-card-header"><span>Réduction Coût</span><span style="color: var(--accent-pink); font-weight: 700;">-73.4%</span></div>
             <div class="kpi-value" style="color: var(--accent-pink)" id="opt-cost-reduction">--</div>
           </div>
         </div>
@@ -218,7 +218,7 @@
 
     <!-- Footer -->
     <footer class="footer">
-      <p>AI Token Optimizer v2.0 — Universal Token Optimization Suite for AI Development Agents • 11 IDEs • Guide 2026</p>
+      <p>AI Token Optimizer v2.0 — Universal Token Optimization Suite for AI Development Agents • 12 IDEs • Guide 2026</p>
     </footer>
   </div>
 

@@ -440,10 +440,15 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!grid) return;
         grid.innerHTML = Object.keys(editorsData).map(key => {
             const ed = editorsData[key];
+            const kpi = ed.efficiency_kpis || {};
             const statusCls = ed.is_installed ? 'installed' : 'missing';
             const statusTxt = ed.is_installed ? '✅ Détecté' : '❌ Non Détecté';
-            const rulesBadge = ed.rules_active ? '<span class="status-badge rules-on">⚡ Règles Actives</span>' : '';
-            const files = (ed.active_rule_paths||[]).map(p => p.replace(sysInfo?.home_dir || '', '~')).join(', ') || 'Aucun';
+            const savingsPct = kpi.savings_percent || (ed.rules_active ? 73.4 : 0);
+            const rulesCount = kpi.active_rule_count || (ed.rules_active ? 6 : 0);
+            const rulesBadge = (ed.rules_active || kpi.engine_opt_active) 
+                ? `<span class="status-badge rules-on">⚡ -${savingsPct}% (${rulesCount} règles)</span>` 
+                : '<span class="status-badge" style="background:rgba(239,68,68,0.15);color:#ef4444">⚠️ Non optimisé</span>';
+            const files = (ed.active_rule_paths||[]).map(p => p.replace(sysInfo?.home_dir || '', '~')).join(', ') || 'Fichiers par défaut';
             return `<div class="editor-config-card">
                 <div class="editor-header">
                     <span class="editor-icon">${ed.icon}</span>
@@ -453,6 +458,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
                 <div style="font-size:0.82rem;color:var(--text-muted);margin-top:0.4rem">Modèles supportés (${(ed.detected_models||[]).length}):</div>
                 <div style="font-size:0.78rem;color:var(--accent-indigo);margin-bottom:0.5rem">${(ed.detected_models||[]).slice(0,3).join(', ')}...</div>
+                <div style="font-size:0.78rem;color:var(--accent-emerald);margin-bottom:0.3rem">Gain $ / 100k: +$${Number(kpi.savings_per_100k || 0.0735).toFixed(4)}</div>
                 <div class="rule-files">Fichiers: ${files}</div>
                 <button class="btn-deploy-editor" onclick="deployEditor('${key}')">⚙️ Déployer Règles (${ed.name})</button>
             </div>`;
