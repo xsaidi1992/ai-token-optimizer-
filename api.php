@@ -11,6 +11,88 @@ require_once __DIR__ . '/editor_detector.php';
 $action = $_GET['action'] ?? $_POST['action'] ?? 'all';
 $forceRefresh = isset($_GET['refresh']) || isset($_POST['refresh']);
 
+// ── Proxy API endpoints (no scanner needed) ──────────────────────────────────
+if (str_starts_with($action, 'proxy_')) {
+    $configFile = __DIR__ . '/data/proxy_config.json';
+    $statsFile  = __DIR__ . '/data/proxy_stats.json';
+    $config = file_exists($configFile) ? json_decode(file_get_contents($configFile), true) : [];
+    $stats  = file_exists($statsFile)  ? json_decode(file_get_contents($statsFile), true) : [];
+
+    if ($action === 'proxy_status') {
+        // Fetch live health from proxy
+        $health = [];
+        $ch = curl_init('http://localhost:' . ($config['port'] ?? 3100) . '/health');
+        curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 2, CURLOPT_CONNECTTIMEOUT => 1]);
+        $resp = curl_exec($ch);
+        $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        if ($code === 200 && $resp) $health = json_decode($resp, true) ?? [];
+
+        echo json_encode([
+            'status'       => 'success',
+            'proxy_online' => !empty($health),
+            'health'       => $health,
+            'config'       => $config,
+            'stats_count'  => count($stats),
+        ]);
+        exit;
+    }
+
+    if ($action === 'proxy_stats') {
+        $limit = (int)($_GET['limit'] ?? 50);
+        $savingsPcts = array_filter(array_column($stats, 'savings_pct'));
+        echo json_encode([
+            'status'      => 'success',
+            'total'       => count($stats),
+            'avg_savings' => count($savingsPcts) ? round(array_sum($savingsPcts) / count($savingsPcts), 1) : 0,
+            'total_bytes_before' => array_sum(array_column($stats, 'input_bytes_before')),
+            'total_bytes_after'  => array_sum(array_column($stats, 'input_bytes_after')),
+            'recent'      => array_slice($stats, 0, $limit),
+        ]);
+        exit;
+    }
+
+    if ($action === 'proxy_toggle_pattern') {
+        $pattern = $_POST['pattern'] ?? '';
+        $enabled = isset($_POST['enabled']) ? ($_POST['enabled'] === 'true' || $_POST['enabled'] === '1') : null;
+        if ($pattern && isset($config['patterns'][$pattern])) {
+            $config['patterns'][$pattern]['enabled'] = $enabled ?? !$config['patterns'][$pattern]['enabled'];
+            $config['updated_at'] = date('Y-m-d H:i:s');
+            file_put_contents($configFile, json_encode($config, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+            echo json_encode(['status' => 'success', 'pattern' => $pattern, 'enabled' => $config['patterns'][$pattern]['enabled'], 'config' => $config]);
+        } else {
+            echo json_encode(['status' => 'error', 'message' => "Pattern '$pattern' not found"]);
+        }
+        exit;
+    }
+
+    if ($action === 'proxy_update_config') {
+        $field = $_POST['field'] ?? '';
+        $value = $_POST['value'] ?? '';
+        if ($field === 'proxy_enabled') {
+            $config['proxy_enabled'] = ($value === 'true' || $value === '1');
+        } elseif ($field && str_contains($field, '.')) {
+            // nested: e.g. "patterns.history_compression.keep_last" => 10
+            $parts = explode('.', $field);
+            $ref = &$config;
+            foreach ($parts as $i => $p) {
+                if ($i === count($parts) - 1) {
+                    $ref[$p] = is_numeric($value) ? (int)$value : $value;
+                } else {
+                    $ref = &$ref[$p];
+                }
+            }
+        }
+        $config['updated_at'] = date('Y-m-d H:i:s');
+        file_put_contents($configFile, json_encode($config, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+        echo json_encode(['status' => 'success', 'config' => $config]);
+        exit;
+    }
+
+    echo json_encode(['status' => 'error', 'message' => 'Unknown proxy action']);
+    exit;
+}
+
 $scanner = new AntigravityScanner();
 $snapshotAgent = new SnapshotAgent();
 $ruleOptimizer = new RuleOptimizer();

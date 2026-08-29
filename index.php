@@ -71,6 +71,7 @@
       <button class="nav-tab" data-tab="guide">📘 Guide 2026</button>
       <button class="nav-tab" data-tab="audit">🔍 Audit Workspace</button>
       <button class="nav-tab" data-tab="benchmark">📸 Benchmarks</button>
+      <button class="nav-tab" data-tab="proxy">⚡ Proxy Optimizer</button>
     </div>
 
     <!-- TAB: Dashboard -->
@@ -213,6 +214,69 @@
         <div class="feed-table-container">
           <table class="feed-table"><thead><tr><th>Date</th><th>Éditeur</th><th>Benchmark</th><th>Modèle</th><th>Statut</th><th>Prompt/Response</th><th>Total</th><th>Économie</th><th>Coût</th></tr></thead>
           <tbody id="snapshot-table-body"></tbody></table>
+        </div>
+      </section>
+    </div>
+
+    <!-- TAB: Proxy Optimizer -->
+    <div id="tab-proxy" class="tab-content" style="display:none;">
+      <!-- Proxy Status Header -->
+      <section class="glass-card" style="margin-bottom:1.5rem; border-color:rgba(16,185,129,0.3); box-shadow:0 0 24px rgba(16,185,129,0.08);">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem;">
+          <div style="display:flex; align-items:center; gap:1rem;">
+            <span style="font-size:2rem;">⚡</span>
+            <div>
+              <h2 class="section-title" style="margin:0;">Proxy Optimizer — 12 Patterns</h2>
+              <p style="font-size:0.8rem; color:var(--text-muted); margin-top:2px;">Contrôle en temps réel de chaque optimisation appliquée par le proxy :3100</p>
+            </div>
+          </div>
+          <div style="display:flex; gap:1rem; align-items:center;">
+            <span id="proxy-status-dot" style="display:inline-flex; align-items:center; gap:0.4rem; font-size:0.85rem; font-weight:700;">
+              <span class="pulse-dot"></span> <span id="proxy-status-text">Vérification...</span>
+            </span>
+            <button id="btn-proxy-toggle-all" class="btn btn-primary" style="background:linear-gradient(135deg,#10b981,#059669);">🔌 Activer/Désactiver Proxy</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Proxy KPIs -->
+      <section class="kpi-grid" style="margin-bottom:1.5rem;">
+        <div class="glass-card" style="background:rgba(16,185,129,0.08); border-color:rgba(16,185,129,0.25);">
+          <div class="kpi-card-header"><span>Économie Moyenne</span></div>
+          <div class="kpi-value" style="color:#10b981;" id="proxy-avg-savings">--%</div>
+          <div class="kpi-subtext">Sur les requêtes loggées</div>
+        </div>
+        <div class="glass-card" style="background:rgba(99,102,241,0.08); border-color:rgba(99,102,241,0.25);">
+          <div class="kpi-card-header"><span>Requêtes Interceptées</span></div>
+          <div class="kpi-value" style="color:#818cf8;" id="proxy-total-requests">--</div>
+        </div>
+        <div class="glass-card" style="background:rgba(14,165,233,0.08); border-color:rgba(14,165,233,0.25);">
+          <div class="kpi-card-header"><span>Bytes Avant → Après</span></div>
+          <div class="kpi-value" style="font-size:1.1rem; color:#0ea5e9;" id="proxy-bytes-flow">-- → --</div>
+        </div>
+        <div class="glass-card" style="background:rgba(245,158,11,0.08); border-color:rgba(245,158,11,0.25);">
+          <div class="kpi-card-header"><span>Patterns Actifs</span></div>
+          <div class="kpi-value" style="color:#f59e0b;" id="proxy-active-patterns">--/12</div>
+        </div>
+      </section>
+
+      <!-- Pattern Toggles Grid -->
+      <section class="glass-card" style="margin-bottom:1.5rem;">
+        <h3 style="font-weight:700; color:white; margin-bottom:1rem;">🎛️ Contrôle des 12 Patterns d'Optimisation</h3>
+        <div id="proxy-patterns-grid" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(320px,1fr)); gap:0.75rem;"></div>
+      </section>
+
+      <!-- Recent Proxy Requests Table -->
+      <section class="glass-card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+          <h3 style="font-weight:700; color:white; margin:0;">📊 Dernières Requêtes Optimisées</h3>
+          <button id="btn-proxy-refresh" class="btn btn-secondary" style="font-size:0.8rem;">🔄 Actualiser</button>
+        </div>
+        <div class="feed-table-container" style="max-height:400px; overflow-y:auto;">
+          <table class="feed-table">
+            <thead><tr><th>Heure</th><th>URI</th><th>Avant</th><th>Après</th><th>Économie</th><th>Tier</th><th>Actions</th></tr></thead>
+            <tbody id="proxy-requests-body"></tbody>
+          </table>
         </div>
       </section>
     </div>

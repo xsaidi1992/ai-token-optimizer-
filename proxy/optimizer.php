@@ -71,8 +71,31 @@ class RequestOptimizer
 
     // ─── Public entry ────────────────────────────────────────────────────────
 
+    private array $config = [];
+
+    private function loadConfig(): void
+    {
+        $configFile = __DIR__ . '/../data/proxy_config.json';
+        if (file_exists($configFile)) {
+            $this->config = json_decode(file_get_contents($configFile), true) ?? [];
+        }
+    }
+
+    private function isPatternEnabled(string $pattern): bool
+    {
+        return ($this->config['patterns'][$pattern]['enabled'] ?? true) === true;
+    }
+
     public function optimize(array $payload, string $uri = ''): array
     {
+        $this->loadConfig();
+
+        // If proxy disabled globally, pass through
+        if (($this->config['proxy_enabled'] ?? true) === false) {
+            $raw = strlen(json_encode($payload, JSON_UNESCAPED_UNICODE));
+            return [$payload, ['uri' => $uri, 'input_bytes_before' => $raw, 'input_bytes_after' => $raw, 'savings_pct' => 0, 'tokens_saved_est' => 0, 'proxy_disabled' => true]];
+        }
+
         // Measure input BEFORE optimization
         $inputBefore = strlen(json_encode($payload, JSON_UNESCAPED_UNICODE));
 
@@ -112,7 +135,7 @@ class RequestOptimizer
         // ═════════════════════════════════════════════════════════════════════
         // STEP 1: System Prompt Slim
         // ═════════════════════════════════════════════════════════════════════
-        if (!empty($payload['system'])) {
+        if (!empty($payload['system']) && $this->isPatternEnabled('system_prompt_slim')) {
             $stats['system_chars_before'] = $this->measureSystem($payload['system']);
             [$payload['system'], $stats['system_trimmed']] = $this->slimSystem($payload['system']);
             $stats['system_chars_after'] = $this->measureSystem($payload['system']);
@@ -121,12 +144,12 @@ class RequestOptimizer
         // ═════════════════════════════════════════════════════════════════════
         // STEP 2: Inject Concision Directive
         // ═════════════════════════════════════════════════════════════════════
-        $payload = $this->injectDirective($payload);
+        if ($this->isPatternEnabled('concision_directive')) $payload = $this->injectDirective($payload);
 
         // ═════════════════════════════════════════════════════════════════════
         // STEP 3: Lazy Tool Schemas (most impactful on input tokens)
         // ═════════════════════════════════════════════════════════════════════
-        if (!empty($payload['tools'])) {
+        if (!empty($payload['tools']) && $this->isPatternEnabled('lazy_tool_schemas')) {
             $stats['tools_total_before'] = count($payload['tools']);
             [$payload['tools'], $stats['tools_trimmed']] = $this->optimizeTools($payload['tools']);
             $stats['tokens_saved_est'] += $stats['tools_trimmed'] * 300;
@@ -135,7 +158,7 @@ class RequestOptimizer
         // ═════════════════════════════════════════════════════════════════════
         // STEP 4: Tool Result Truncation
         // ═════════════════════════════════════════════════════════════════════
-        if ($msgKey) {
+        if ($msgKey && $this->isPatternEnabled('tool_result_truncation')) {
             [$payload[$msgKey], $stats['tool_results_truncated']] = $this->truncateToolResults($payload[$msgKey]);
             $stats['tokens_saved_est'] += $stats['tool_results_truncated'] * 800;
         }
@@ -143,14 +166,14 @@ class RequestOptimizer
         // ═════════════════════════════════════════════════════════════════════
         // STEP 5: Filler Removal from user messages
         // ═════════════════════════════════════════════════════════════════════
-        if ($msgKey) {
+        if ($msgKey && $this->isPatternEnabled('filler_removal')) {
             [$payload[$msgKey], $stats['filler_removed']] = $this->compressUserMessages($payload[$msgKey]);
         }
 
         // ═════════════════════════════════════════════════════════════════════
         // STEP 6: History Compression (most impactful on long conversations)
         // ═════════════════════════════════════════════════════════════════════
-        if ($msgKey && count($payload[$msgKey]) > self::MAX_MESSAGES_KEEP_FIRST + self::MAX_MESSAGES_KEEP_LAST + 2) {
+        if ($msgKey && $this->isPatternEnabled('history_compression') && count($payload[$msgKey]) > self::MAX_MESSAGES_KEEP_FIRST + self::MAX_MESSAGES_KEEP_LAST + 2) {
             [$payload[$msgKey], $stats['messages_compressed']] = $this->compressHistory($payload[$msgKey]);
             $stats['tokens_saved_est'] += $stats['messages_compressed'] * 400;
         }
@@ -158,7 +181,7 @@ class RequestOptimizer
         // ═════════════════════════════════════════════════════════════════════
         // STEP 7: Deduplicate consecutive identical messages
         // ═════════════════════════════════════════════════════════════════════
-        if ($msgKey) {
+        if ($msgKey && $this->isPatternEnabled('deduplication')) {
             $before = count($payload[$msgKey]);
             $payload[$msgKey] = $this->deduplicate($payload[$msgKey]);
             $stats['messages_deduped'] = $before - count($payload[$msgKey]);
@@ -168,14 +191,14 @@ class RequestOptimizer
         // ═════════════════════════════════════════════════════════════════════
         // STEP 8: max_tokens Enforcement by task tier
         // ═════════════════════════════════════════════════════════════════════
-        [$payload, $stats['max_tokens_set'], $stats['max_tokens_tier']] = $this->enforceMaxTokens($payload, $msgKey);
+        if ($this->isPatternEnabled('max_tokens_enforcement')) [$payload, $stats['max_tokens_set'], $stats['max_tokens_tier']] = $this->enforceMaxTokens($payload, $msgKey);
 
         // ═════════════════════════════════════════════════════════════════════
         // STEP 9: Base64 image stripping from old messages
         //   Vision requests embed huge base64 blobs in history — useless
         //   for follow-up turns. Replace with tiny placeholder.
         // ═════════════════════════════════════════════════════════════════════
-        if ($msgKey) {
+        if ($msgKey && $this->isPatternEnabled('base64_image_strip')) {
             [$payload[$msgKey], $stats['base64_stripped']] = $this->stripBase64Images($payload[$msgKey]);
             $stats['tokens_saved_est'] += $stats['base64_stripped'] * 5000;
         }
@@ -185,7 +208,7 @@ class RequestOptimizer
         //   Only the last assistant message needs full content.
         //   Earlier ones are context — first 200 chars suffice.
         // ═════════════════════════════════════════════════════════════════════
-        if ($msgKey) {
+        if ($msgKey && $this->isPatternEnabled('assistant_response_trim')) {
             [$payload[$msgKey], $stats['assistant_trimmed']] = $this->trimOldAssistantMessages($payload[$msgKey]);
             $stats['tokens_saved_est'] += $stats['assistant_trimmed'] * 300;
         }
@@ -193,7 +216,7 @@ class RequestOptimizer
         // ═════════════════════════════════════════════════════════════════════
         // STEP 11: Remove empty/whitespace-only content blocks
         // ═════════════════════════════════════════════════════════════════════
-        if ($msgKey) {
+        if ($msgKey && $this->isPatternEnabled('empty_block_cleanup')) {
             [$payload[$msgKey], $stats['empty_removed']] = $this->removeEmptyBlocks($payload[$msgKey]);
         }
 
@@ -201,7 +224,7 @@ class RequestOptimizer
         // STEP 12: Google systemInstruction slim
         //   Google Gemini uses a separate 'system_instruction' field.
         // ═════════════════════════════════════════════════════════════════════
-        if (!empty($payload['system_instruction'])) {
+        if (!empty($payload['system_instruction']) && $this->isPatternEnabled('google_system_slim')) {
             [$payload['system_instruction'], $stats['google_sys_trimmed']] = $this->slimSystem($payload['system_instruction']);
         }
 

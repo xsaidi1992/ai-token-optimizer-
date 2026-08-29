@@ -656,6 +656,170 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    // === PROXY OPTIMIZER TAB ===
+    function fetchProxyStatus() {
+        fetch('api.php?action=proxy_status').then(r => r.json()).then(d => {
+            if (d.status !== 'success') return;
+            const online = d.proxy_online;
+            const el = (id, val) => { const e = document.getElementById(id); if (e) e.textContent = val; };
+
+            el('proxy-status-text', online ? '🟢 En ligne (port ' + (d.config?.port || 3100) + ')' : '🔴 Hors ligne');
+            const dot = document.getElementById('proxy-status-dot');
+            if (dot) dot.style.color = online ? '#10b981' : '#ef4444';
+
+            // KPIs
+            const h = d.health || {};
+            el('proxy-avg-savings', (h.avg_savings_pct || h.real_savings_pct || 0) + '%');
+            el('proxy-total-requests', (h.requests_logged || d.stats_count || 0).toLocaleString());
+            const bBefore = h.total_bytes_before || 0;
+            const bAfter = h.total_bytes_after || 0;
+            el('proxy-bytes-flow', formatBytes(bBefore) + ' → ' + formatBytes(bAfter));
+
+            // Pattern toggles
+            const config = d.config || {};
+            const patterns = config.patterns || {};
+            const activeCount = Object.values(patterns).filter(p => p.enabled).length;
+            el('proxy-active-patterns', activeCount + '/' + Object.keys(patterns).length);
+
+            renderProxyPatterns(patterns, config.proxy_enabled !== false);
+        }).catch(() => {});
+    }
+
+    function formatBytes(b) {
+        if (b >= 1048576) return (b / 1048576).toFixed(1) + ' MB';
+        if (b >= 1024) return (b / 1024).toFixed(1) + ' KB';
+        return b + ' B';
+    }
+
+    function renderProxyPatterns(patterns, proxyEnabled) {
+        const grid = document.getElementById('proxy-patterns-grid');
+        if (!grid) return;
+        const icons = {
+            system_prompt_slim: '✂️', concision_directive: '📝', lazy_tool_schemas: '🔧',
+            tool_result_truncation: '📄', filler_removal: '🧹', history_compression: '📚',
+            deduplication: '🔁', max_tokens_enforcement: '🎯', base64_image_strip: '🖼️',
+            assistant_response_trim: '💬', empty_block_cleanup: '🗑️', google_system_slim: '🌐'
+        };
+        const colors = {
+            system_prompt_slim: '#10b981', concision_directive: '#06b6d4', lazy_tool_schemas: '#818cf8',
+            tool_result_truncation: '#f59e0b', filler_removal: '#ec4899', history_compression: '#a855f7',
+            deduplication: '#64748b', max_tokens_enforcement: '#ef4444', base64_image_strip: '#0ea5e9',
+            assistant_response_trim: '#fbbf24', empty_block_cleanup: '#94a3b8', google_system_slim: '#34d399'
+        };
+
+        let idx = 0;
+        grid.innerHTML = Object.entries(patterns).map(([key, p]) => {
+            idx++;
+            const icon = icons[key] || '⚙️';
+            const color = colors[key] || '#818cf8';
+            const enabled = p.enabled;
+            const opacity = enabled ? 1 : 0.4;
+            const border = enabled ? color : 'rgba(255,255,255,0.08)';
+            const bg = enabled ? `rgba(${hexToRgb(color)},0.08)` : 'rgba(0,0,0,0.2)';
+            const toggleColor = enabled ? '#10b981' : '#ef4444';
+            const toggleText = enabled ? 'ON' : 'OFF';
+
+            return `<div style="background:${bg}; border:1px solid ${border}; border-radius:12px; padding:0.85rem 1rem; opacity:${opacity}; transition:all 0.3s;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.4rem;">
+                    <div style="display:flex; align-items:center; gap:0.5rem;">
+                        <span style="font-size:1.1rem;">${icon}</span>
+                        <span style="font-size:0.82rem; font-weight:700; color:white;">#${idx} ${p.label}</span>
+                    </div>
+                    <button class="proxy-pattern-toggle" data-pattern="${key}" data-enabled="${enabled}"
+                        style="background:${toggleColor}; color:white; border:none; border-radius:20px; padding:3px 12px;
+                        font-size:0.7rem; font-weight:800; cursor:pointer; min-width:42px; transition:all 0.2s;">${toggleText}</button>
+                </div>
+                <div style="font-size:0.72rem; color:var(--text-muted);">Savings: <span style="color:${color}; font-weight:700;">${p.savings}</span></div>
+            </div>`;
+        }).join('');
+
+        // Wire toggle buttons
+        grid.querySelectorAll('.proxy-pattern-toggle').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const pattern = btn.dataset.pattern;
+                const newEnabled = btn.dataset.enabled !== 'true';
+                const fd = new FormData();
+                fd.append('action', 'proxy_toggle_pattern');
+                fd.append('pattern', pattern);
+                fd.append('enabled', newEnabled ? 'true' : 'false');
+                fetch('api.php', { method: 'POST', body: fd }).then(r => r.json()).then(d => {
+                    if (d.status === 'success') fetchProxyStatus();
+                });
+            });
+        });
+    }
+
+    function hexToRgb(hex) {
+        hex = hex.replace('#', '');
+        if (hex.length === 3) hex = hex.split('').map(c => c + c).join('');
+        const r = parseInt(hex.substr(0, 2), 16);
+        const g = parseInt(hex.substr(2, 2), 16);
+        const b = parseInt(hex.substr(4, 2), 16);
+        return `${r},${g},${b}`;
+    }
+
+    function fetchProxyRequests() {
+        fetch('api.php?action=proxy_stats&limit=30').then(r => r.json()).then(d => {
+            if (d.status !== 'success') return;
+            const tbody = document.getElementById('proxy-requests-body');
+            if (!tbody) return;
+            const recent = d.recent || [];
+            if (recent.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--text-muted); padding:2rem;">Aucune requête interceptée. Activez le proxy avec <code>source proxy/activate_proxy.sh</code></td></tr>';
+                return;
+            }
+            tbody.innerHTML = recent.map(r => {
+                const pct = r.savings_pct || 0;
+                const pctColor = pct > 50 ? '#10b981' : pct > 20 ? '#f59e0b' : '#94a3b8';
+                const actions = [];
+                if (r.tools_trimmed > 0) actions.push(`🔧-${r.tools_trimmed}`);
+                if (r.messages_compressed > 0) actions.push(`📚-${r.messages_compressed}`);
+                if (r.base64_stripped > 0) actions.push(`🖼️-${r.base64_stripped}`);
+                if (r.filler_removed > 0) actions.push(`🧹-${r.filler_removed}`);
+                if (r.assistant_trimmed > 0) actions.push(`💬-${r.assistant_trimmed}`);
+                return `<tr>
+                    <td style="font-size:0.75rem; color:var(--text-muted); font-family:monospace;">${r.timestamp || '--'}</td>
+                    <td style="font-size:0.78rem; color:#818cf8; max-width:200px; overflow:hidden; text-overflow:ellipsis;">${r.uri || '--'}</td>
+                    <td style="font-size:0.82rem; color:var(--text-muted);">${formatBytes(r.input_bytes_before || 0)}</td>
+                    <td style="font-size:0.82rem; color:white; font-weight:600;">${formatBytes(r.input_bytes_after || 0)}</td>
+                    <td style="font-weight:800; color:${pctColor};">-${pct}%</td>
+                    <td><span style="background:rgba(99,102,241,0.15); color:#818cf8; padding:2px 8px; border-radius:6px; font-size:0.72rem; font-weight:600;">${r.max_tokens_tier || '--'}</span></td>
+                    <td style="font-size:0.7rem; color:var(--text-muted);">${actions.join(' ') || '--'}</td>
+                </tr>`;
+            }).join('');
+        }).catch(() => {});
+    }
+
+    // Proxy toggle all
+    document.getElementById('btn-proxy-toggle-all')?.addEventListener('click', () => {
+        const fd = new FormData();
+        fd.append('action', 'proxy_update_config');
+        fd.append('field', 'proxy_enabled');
+        // Toggle current state
+        fetch('api.php?action=proxy_status').then(r => r.json()).then(d => {
+            const current = d.config?.proxy_enabled !== false;
+            const fd2 = new FormData();
+            fd2.append('action', 'proxy_update_config');
+            fd2.append('field', 'proxy_enabled');
+            fd2.append('value', current ? 'false' : 'true');
+            fetch('api.php', { method: 'POST', body: fd2 }).then(r => r.json()).then(() => fetchProxyStatus());
+        });
+    });
+
+    document.getElementById('btn-proxy-refresh')?.addEventListener('click', () => {
+        fetchProxyStatus();
+        fetchProxyRequests();
+    });
+
+    // Load proxy tab when clicked
+    const origTabHandler = document.querySelector('.nav-tab[data-tab="proxy"]');
+    if (origTabHandler) {
+        origTabHandler.addEventListener('click', () => {
+            fetchProxyStatus();
+            fetchProxyRequests();
+        });
+    }
+
     // === INIT ===
     fetchSystemInfo();
     fetchEditors();
