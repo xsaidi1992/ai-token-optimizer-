@@ -770,6 +770,23 @@ document.addEventListener('DOMContentLoaded', () => {
                 tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--text-muted); padding:2rem;">Aucune requête interceptée. Activez le proxy avec <code>source proxy/activate_proxy.sh</code></td></tr>';
                 return;
             }
+
+            // Check freshness of most recent entry
+            const newest = recent[0]?.timestamp || '';
+            const newestDate = new Date(newest.replace(' ', 'T'));
+            const ageMinutes = (Date.now() - newestDate.getTime()) / 60000;
+            const staleEl = document.getElementById('proxy-stale-banner');
+
+            if (ageMinutes > 5 && staleEl) {
+                const ageText = ageMinutes > 60
+                    ? `${Math.floor(ageMinutes/60)}h${Math.floor(ageMinutes%60)}min`
+                    : `${Math.floor(ageMinutes)} min`;
+                staleEl.innerHTML = `⏳ Dernière requête il y a <strong>${ageText}</strong> — le proxy attend du trafic IDE. Assurez-vous que <code>ANTHROPIC_BASE_URL=http://localhost:3100</code> est actif.`;
+                staleEl.style.display = 'block';
+            } else if (staleEl) {
+                staleEl.style.display = 'none';
+            }
+
             tbody.innerHTML = recent.map(r => {
                 const pct = r.savings_pct || 0;
                 const pctColor = pct > 50 ? '#10b981' : pct > 20 ? '#f59e0b' : '#94a3b8';
@@ -779,8 +796,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (r.base64_stripped > 0) actions.push(`🖼️-${r.base64_stripped}`);
                 if (r.filler_removed > 0) actions.push(`🧹-${r.filler_removed}`);
                 if (r.assistant_trimmed > 0) actions.push(`💬-${r.assistant_trimmed}`);
+                // Relative time display
+                const ts = r.timestamp || '--';
+                const reqDate = new Date(ts.replace(' ', 'T'));
+                const diffSec = Math.floor((Date.now() - reqDate.getTime()) / 1000);
+                let ago = ts;
+                if (!isNaN(diffSec) && diffSec >= 0) {
+                    if (diffSec < 60) ago = `il y a ${diffSec}s`;
+                    else if (diffSec < 3600) ago = `il y a ${Math.floor(diffSec/60)} min`;
+                    else if (diffSec < 86400) ago = `il y a ${Math.floor(diffSec/3600)}h${String(Math.floor((diffSec%3600)/60)).padStart(2,'0')}`;
+                    else ago = `il y a ${Math.floor(diffSec/86400)}j`;
+                }
                 return `<tr>
-                    <td style="font-size:0.75rem; color:var(--text-muted); font-family:monospace;">${r.timestamp || '--'}</td>
+                    <td style="font-size:0.75rem; color:var(--text-muted); font-family:monospace;" title="${ts}">${ago}</td>
                     <td style="font-size:0.78rem; color:#818cf8; max-width:200px; overflow:hidden; text-overflow:ellipsis;">${r.uri || '--'}</td>
                     <td style="font-size:0.82rem; color:var(--text-muted);">${formatBytes(r.input_bytes_before || 0)}</td>
                     <td style="font-size:0.82rem; color:white; font-weight:600;">${formatBytes(r.input_bytes_after || 0)}</td>

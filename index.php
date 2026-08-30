@@ -272,6 +272,7 @@
           <h3 style="font-weight:700; color:white; margin:0;">📊 Dernières Requêtes Optimisées</h3>
           <button id="btn-proxy-refresh" class="btn btn-secondary" style="font-size:0.8rem;">🔄 Actualiser</button>
         </div>
+        <div id="proxy-stale-banner" style="display:none; background:rgba(245,158,11,0.12); border:1px solid rgba(245,158,11,0.3); border-radius:8px; padding:0.6rem 1rem; margin-bottom:0.75rem; font-size:0.82rem; color:#fbbf24;"></div>
         <div class="feed-table-container" style="max-height:400px; overflow-y:auto;">
           <table class="feed-table">
             <thead><tr><th>Heure</th><th>URI</th><th>Avant</th><th>Après</th><th>Économie</th><th>Tier</th><th>Actions</th></tr></thead>
