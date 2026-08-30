@@ -827,10 +827,14 @@ document.addEventListener('DOMContentLoaded', () => {
     fetchEditors();
     fetchSnapshots(activeBenchmarkEditor);
     fetchOptStatus();
-    // Refresh metrics every 5s — cache TTL in scanner.php is also 5s
+    fetchProxyStatus();
+    fetchProxyRequests();
+    // Refresh all metrics every 5s — cache TTL in scanner.php is also 5s
     setInterval(() => {
         fetchEditors();
         fetchOptStatus();
+        fetchProxyStatus();
+        fetchProxyRequests();
         // Force-refresh scanned_at timestamp display
         const ts = document.getElementById('scanned-at-time');
         if (ts) ts.textContent = new Date().toLocaleTimeString();
