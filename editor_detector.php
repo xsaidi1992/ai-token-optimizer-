@@ -581,109 +581,106 @@ RULE);
             return (new AntigravityScanner())->scan();
         }
 
+        // ── Non-Antigravity editors: real data only, no synthetic generation ──
+        // These IDEs don't expose usage logs. Show 0 until proxy captures real traffic.
         $palette = ['#6366f1','#10b981','#ec4899','#f59e0b','#3b82f6','#8b5cf6','#06b6d4','#14b8a6','#f43f5e','#a855f7'];
         $modelStats = [];
-        $gTotal = $gPrompt = $gComp = $gReqs = 0;
-        $gCost = 0.0;
-
         foreach ($models as $idx => $mName) {
-            $tokens = match($idx) { 0 => 24500, 1 => 15200, 2 => 8900, 3 => 4100, default => 2500 };
-            $pt = (int)ceil($tokens * 0.15);
-            $ct = (int)ceil($tokens * 0.85);
-            $cost = round(($pt / 1e6 * 0.075) + ($ct / 1e6 * 0.30), 5);
-            $reqs = (int)ceil($tokens / 140);
-            $color = $palette[$idx % count($palette)];
-            $gTotal += $tokens; $gPrompt += $pt; $gComp += $ct; $gCost += $cost; $gReqs += $reqs;
-            $modelStats[] = ['name' => $mName, 'total_tokens' => $tokens, 'prompt_tokens' => $pt, 'completion_tokens' => $ct, 'requests' => $reqs, 'estimated_cost' => $cost, 'color' => $color];
+            $modelStats[] = ['name' => $mName, 'total_tokens' => 0, 'prompt_tokens' => 0, 'completion_tokens' => 0, 'requests' => 0, 'estimated_cost' => 0, 'color' => $palette[$idx % count($palette)]];
         }
 
+        // Try to read real proxy stats for this editor's traffic
+        $proxyStatsFile = __DIR__ . '/data/proxy_stats.json';
+        $proxyStats = file_exists($proxyStatsFile) ? (json_decode(file_get_contents($proxyStatsFile), true) ?? []) : [];
+        $gTotal = $gPrompt = $gComp = $gReqs = 0;
+        $gCost = 0.0;
+        $liveFeed = [];
+
+        foreach ($proxyStats as $ps) {
+            $beforeBytes = $ps['input_bytes_before'] ?? 0;
+            $estTokens = (int)ceil($beforeBytes / 3.8);
+            $gTotal += $estTokens;
+            $gPrompt += (int)ceil($estTokens * 0.65);
+            $gComp += (int)ceil($estTokens * 0.35);
+            $gReqs++;
+            $gCost += round($estTokens / 1e6 * 0.15, 6);
+
+            if (count($liveFeed) < 15) {
+                $liveFeed[] = [
+                    'datetime' => $ps['timestamp'] ?? date('Y-m-d H:i:s'),
+                    'model' => 'proxy',
+                    'prompt_tokens' => (int)ceil($estTokens * 0.65),
+                    'completion_tokens' => (int)ceil($estTokens * 0.35),
+                    'total_tokens' => $estTokens,
+                    'cost' => round($estTokens / 1e6 * 0.15, 6),
+                    'snippet' => 'Proxy: ' . ($ps['uri'] ?? '/v1/messages') . ' (-' . ($ps['savings_pct'] ?? 0) . '%)',
+                ];
+            }
+        }
+
+        // Timeline: 30 days of 0s (no synthetic wave generation)
         $timelineLabels = [];
         $dailySeries = [];
         for ($i = 29; $i >= 0; $i--) {
             $ts = strtotime("-$i days");
-            $label = date('d M', $ts);
-            $timelineLabels[] = $label;
+            $timelineLabels[] = date('d M', $ts);
             $dayModels = [];
-            $dayTotal = 0;
-            foreach ($modelStats as $ms) {
-                $base = (int)ceil($ms['total_tokens'] / 30);
-                $val = (int)ceil($base * (sin(($i + strlen($ms['name'])) * 0.5) * 0.4 + 1.0));
-                $dayModels[$ms['name']] = $val;
-                $dayTotal += $val;
-            }
-            $dailySeries[] = ['date' => date('Y-m-d', $ts), 'label' => $label, 'total' => $dayTotal, 'models' => $dayModels];
+            foreach ($modelStats as $ms) $dayModels[$ms['name']] = 0;
+            $dailySeries[] = ['date' => date('Y-m-d', $ts), 'label' => date('d M', $ts), 'total' => 0, 'models' => $dayModels];
         }
 
-        $liveFeed = [];
-        for ($k = 0; $k < 15; $k++) {
-            $m = $modelStats[$k % count($modelStats)];
-            $t = rand(400, 1800); $tp = (int)ceil($t * 0.18); $tc = $t - $tp;
-            $liveFeed[] = ['datetime' => date('Y-m-d H:i:s', time() - $k * 360), 'model' => $m['name'], 'prompt_tokens' => $tp, 'completion_tokens' => $tc, 'total_tokens' => $t, 'cost' => round(($tp / 1e6 * 0.075) + ($tc / 1e6 * 0.30), 5), 'snippet' => "Agent activity in " . strtoupper($key) . " [" . $m['name'] . "]"];
-        }
-
-        // Check if rule files exist for this editor or global optimization status is active
+        // Check optimization state from deployed rules
         $isOptActive = file_exists(__DIR__ . '/data/token_optimization_status.json');
         $ruleFiles = $this->getRuleFilePaths($key);
         $activeRulePaths = array_filter($ruleFiles, 'file_exists');
         $activeRuleCount = count($activeRulePaths);
         $hasDeployedRules = !empty($activeRulePaths);
-
         $isOptimized = $hasDeployedRules || $isOptActive;
-        $savingsPercent = $isOptimized ? 0.956 : 0.0;
 
-        // Detailed token type breakdown (Guide §1.1 & §18 & Agent Patterns)
-        $cachedPromptTokens = (int)ceil($gPrompt * ($isOptimized ? 0.58 : 0.42)); // 58% prompt caching with GEPA/DSPy
-        $reasoningTokens = (int)ceil($gComp * 0.08);                               // 8% reasoning tax with /fast mode
-        $mcpToolTokens = (int)ceil($gPrompt * ($isOptimized ? 0.09 : 0.18));      // -40% MCP tool tax with Lazy Schemas
+        // Compute real savings from proxy stats
+        $totalBytesBefore = array_sum(array_column($proxyStats, 'input_bytes_before'));
+        $totalBytesAfter = array_sum(array_column($proxyStats, 'input_bytes_after'));
+        $realSavingsPct = $totalBytesBefore > 0 ? round(100 * (1 - $totalBytesAfter / $totalBytesBefore), 1) : 0;
 
-        $tokenBreakdown = [
-            'raw_prompt_tokens' => max(0, $gPrompt - $cachedPromptTokens - $mcpToolTokens),
-            'cached_prompt_tokens' => $cachedPromptTokens,
-            'mcp_tool_tokens' => $mcpToolTokens,
-            'completion_tokens' => max(0, $gComp - $reasoningTokens),
-            'reasoning_tokens' => $reasoningTokens,
-            'total_tokens' => $gTotal,
-        ];
+        $savedTokens = $gTotal > 0 ? (int)ceil($gTotal * $realSavingsPct / 100) : 0;
+        $savedCost = $gCost > 0 ? round($gCost * $realSavingsPct / 100, 6) : 0;
 
-        $realCostAfter = $gCost;
-        $baselineCostBefore = $savingsPercent > 0
-            ? round($realCostAfter / (1.0 - $savingsPercent), 6)
-            : $realCostAfter;
-        $savedCost = round($baselineCostBefore - $realCostAfter, 6);
-        $savedTokens = (int)ceil($gTotal * $savingsPercent);
+        // Read real proxy config
+        $proxyConfigFile = __DIR__ . '/data/proxy_config.json';
+        $proxyConfig = file_exists($proxyConfigFile) ? (json_decode(file_get_contents($proxyConfigFile), true) ?? []) : [];
+        $proxyEnabled = $proxyConfig['proxy_enabled'] ?? false;
 
         $efficiencyKpis = [
-            'cache_hit_ratio' => $isOptimized ? 78.4 : 42.0,
-            'rework_rate' => $isOptimized ? 3.1 : 8.5,
-            'cost_per_task' => round($realCostAfter / max(1, $gReqs), 6),
-            'baseline_cost_per_task' => round($baselineCostBefore / max(1, $gReqs), 6),
-            'opt_score' => $isOptimized ? 98 : 70,
-            'saved_tokens_est' => $savedTokens,
-            'saved_cost_est' => $savedCost,
-            'cost_per_100k_before' => $gTotal > 0 ? round(($baselineCostBefore / $gTotal) * 100000, 4) : 0,
-            'cost_per_100k_after' => $gTotal > 0 ? round(($realCostAfter / $gTotal) * 100000, 4) : 0,
-            'savings_per_100k' => $gTotal > 0 ? round((($baselineCostBefore - $realCostAfter) / $gTotal) * 100000, 4) : 0,
-            'savings_percent' => round($savingsPercent * 100, 1),
-            'active_rule_count' => $hasDeployedRules ? max($activeRuleCount, 6) : ($isOptActive ? 6 : 0),
-            'engine_opt_active' => $isOptimized,
-            'optimization_strategies' => [
-                'lazy_tool_schemas' => ['label' => 'Lazy Tool Schemas', 'reduction' => '-40% Tool Tax', 'active' => $isOptimized],
-                'tool_batching' => ['label' => 'Tool Call Batching', 'reduction' => '3.5x Turn Compression', 'active' => $isOptimized],
-                'skill_resolution' => ['label' => 'Skills On-Demand', 'reduction' => '-50% Always-On Overhead', 'active' => $isOptimized],
-                'fts5_episodic_memory' => ['label' => 'SQLite FTS5 Memory', 'reduction' => '-60% Context Memory Tax', 'active' => $isOptimized],
-                'gepa_dspy_prompt_evolution' => ['label' => 'GEPA/DSPy Evolution', 'reduction' => '-51.7% Prompt Reduction', 'active' => $isOptimized],
-                'output_length_control' => ['label' => 'Output Length Control', 'reduction' => '-35% Completion Tokens', 'active' => $isOptimized],
-            ]
+            'cache_hit_ratio'       => 0,
+            'rework_rate'           => 0,
+            'cost_per_task'         => $gReqs > 0 ? round($gCost / $gReqs, 6) : 0,
+            'baseline_cost_per_task'=> 0,
+            'opt_score'             => $isOptimized ? min(100, 70 + (int)round($realSavingsPct * 0.3)) : 0,
+            'saved_tokens_est'      => $savedTokens,
+            'saved_cost_est'        => $savedCost,
+            'cost_per_100k_before'  => 0,
+            'cost_per_100k_after'   => 0,
+            'savings_per_100k'      => 0,
+            'savings_percent'       => $realSavingsPct,
+            'active_rule_count'     => $hasDeployedRules ? $activeRuleCount : 0,
+            'engine_opt_active'     => $isOptimized,
+            'proxy_active'          => $proxyEnabled,
+            'proxy_patterns_count'  => count($proxyConfig['patterns'] ?? []),
+            'optimization_strategies' => $isOptimized ? [
+                'proxy_19_patterns' => ['label' => '19-Pattern Proxy Engine', 'reduction' => "-{$realSavingsPct}% measured", 'active' => $proxyEnabled],
+                'rule_files'        => ['label' => 'IDE Rule Files Deployed', 'reduction' => "{$activeRuleCount} files", 'active' => $hasDeployedRules],
+            ] : [],
         ];
 
         return [
-            'summary' => ['period' => 'Last 30 Days', 'global_total_tokens' => $gTotal, 'global_prompt_tokens' => $gPrompt, 'global_completion_tokens' => $gComp, 'global_total_cost' => round($gCost, 4), 'global_total_requests' => $gReqs, 'active_models_count' => count($modelStats), 'peak_day' => ['date' => date('d M', strtotime('-3 days')), 'tokens' => (int)ceil($gTotal / 15)]],
+            'summary' => ['period' => 'Last 30 Days', 'global_total_tokens' => $gTotal, 'global_prompt_tokens' => $gPrompt, 'global_completion_tokens' => $gComp, 'global_total_cost' => round($gCost, 4), 'global_total_requests' => $gReqs, 'active_models_count' => count($modelStats), 'peak_day' => ['date' => date('d M'), 'tokens' => 0], 'data_source' => $gReqs > 0 ? 'proxy_stats' : 'no_data'],
             'model_stats' => $modelStats,
             'timeline_labels' => $timelineLabels,
             'daily_series' => $dailySeries,
             'live_feed' => $liveFeed,
-            'token_breakdown' => $tokenBreakdown,
+            'token_breakdown' => ['raw_prompt_tokens' => $gPrompt, 'cached_prompt_tokens' => 0, 'mcp_tool_tokens' => 0, 'completion_tokens' => $gComp, 'reasoning_tokens' => 0, 'total_tokens' => $gTotal],
             'efficiency_kpis' => $efficiencyKpis,
         ];
     }
 }
+

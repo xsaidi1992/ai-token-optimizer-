@@ -180,50 +180,7 @@ class AntigravityScanner {
             }
         }
 
-        // Generate smooth baseline realistic trend data for past days with 0 recorded logs
-        // so the 30-day curve is fully populated with realistic activity history
-        foreach ($dailySeries as $dateStr => &$dayData) {
-            if ($dayData['total_tokens'] === 0) {
-                $seed = abs(crc32($dateStr));
-                $dayData['total_tokens'] = ($seed % 45000) + 12000;
-                $dayData['prompt_tokens'] = (int)($dayData['total_tokens'] * 0.65);
-                $dayData['completion_tokens'] = $dayData['total_tokens'] - $dayData['prompt_tokens'];
-                
-                // Distribute baseline tokens across the 11 models
-                $modelsList = array_keys($this->modelRates);
-                $numModels = count($modelsList);
-                $rem = $dayData['total_tokens'];
-                
-                foreach ($modelsList as $idx => $mName) {
-                    if ($idx === $numModels - 1) {
-                        $mToks = max(0, $rem);
-                    } else {
-                        $ratio = (12 - $idx) / 78.0; // Weighted distribution
-                        $mToks = (int)($dayData['total_tokens'] * $ratio);
-                        $rem -= $mToks;
-                    }
-                    $dayData['models'][$mName] = $mToks;
-                }
-
-                // Cost calculation
-                $dayCost = 0;
-                foreach ($dayData['models'] as $mName => $mToks) {
-                    $r = $this->modelRates[$mName];
-                    $dayCost += ($mToks * 0.65 / 1000000 * $r['input']) + ($mToks * 0.35 / 1000000 * $r['output']);
-                }
-                $dayData['cost'] = $dayCost;
-
-                // Add to model totals
-                foreach ($dayData['models'] as $mName => $mToks) {
-                    $modelStats[$mName]['total_tokens'] += $mToks;
-                    $modelStats[$mName]['prompt_tokens'] += (int)($mToks * 0.65);
-                    $modelStats[$mName]['completion_tokens'] += (int)($mToks * 0.35);
-                    $modelStats[$mName]['requests'] += (int)($mToks / 1200);
-                    $r = $this->modelRates[$mName];
-                    $modelStats[$mName]['estimated_cost'] += ($mToks * 0.65 / 1000000 * $r['input']) + ($mToks * 0.35 / 1000000 * $r['output']);
-                }
-            }
-        }
+        // Days with 0 recorded events stay at 0 — no synthetic data injection.
 
         // Global 1-Month Summary Totals
         $globalTotalTokens = 0;
