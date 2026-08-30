@@ -42,7 +42,7 @@ if ($uri === '/health' || $uri === '/') {
 
     echo json_encode([
         'status'             => 'ok',
-        'proxy'              => 'AI Token Optimizer Proxy v2.0',
+        'proxy'              => 'AI Token Optimizer Proxy v3.0',
         'port'               => 3100,
         'requests_logged'    => count($allStats),
         'tokens_saved_est'   => $totalSaved,

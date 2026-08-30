@@ -550,7 +550,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const compBadge = document.getElementById('bench-compression-badge');
         if (compBadge) compBadge.textContent = `${s.compression_ratio||'--'}x`;
         el('opt-cost-reduction', `-${s.cost_reduction_percent||0}%`);
-        // Update dynamic header badges (previously hardcoded -73.4%)
+        // Update dynamic header badges from real API data
         const tokenBadge = document.getElementById('bench-token-reduction-badge');
         if (tokenBadge) tokenBadge.textContent = `-${s.token_reduction_percent||0}%`;
         const costBadge = document.getElementById('bench-cost-reduction-badge');

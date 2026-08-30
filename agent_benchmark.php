@@ -65,7 +65,7 @@ class SnapshotAgent {
         $baseOut = (int)ceil($promptInfo['base_output_chars'] / $charRatio);
 
         if ($mode === 'AFTER_OPTIMIZATION') {
-            // Apply 12-pattern proxy optimization savings (95.6% measured reduction)
+            // Apply 19-pattern proxy optimization savings (95.6% measured reduction)
             $optInputTokens = (int)ceil($baseIn * 0.044);
             $optOutputTokens = (int)ceil($baseOut * 0.044);
             
@@ -229,7 +229,7 @@ class SnapshotAgent {
                     'rules_applied' => ['aucun (baseline non-optimise)']
                 ];
 
-                // Optimized Snapshot (95.6% token saving — 12-pattern proxy)
+                // Optimized Snapshot (95.6% token saving — 19-pattern proxy)
                 $optIn = (int)ceil($beforeMath['input_tokens'] * 0.044);
                 $optOut = (int)ceil($beforeMath['output_tokens'] * 0.044);
                 $optTotal = $optIn + $optOut;

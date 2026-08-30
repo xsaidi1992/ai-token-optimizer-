@@ -226,7 +226,7 @@
           <div style="display:flex; align-items:center; gap:1rem;">
             <span style="font-size:2rem;">⚡</span>
             <div>
-              <h2 class="section-title" style="margin:0;">Proxy Optimizer — 12 Patterns</h2>
+              <h2 class="section-title" style="margin:0;">Proxy Optimizer — 19 Patterns</h2>
               <p style="font-size:0.8rem; color:var(--text-muted); margin-top:2px;">Contrôle en temps réel de chaque optimisation appliquée par le proxy :3100</p>
             </div>
           </div>
@@ -262,7 +262,7 @@
 
       <!-- Pattern Toggles Grid -->
       <section class="glass-card" style="margin-bottom:1.5rem;">
-        <h3 style="font-weight:700; color:white; margin-bottom:1rem;">🎛️ Contrôle des 12 Patterns d'Optimisation</h3>
+        <h3 style="font-weight:700; color:white; margin-bottom:1rem;">🎛️ Contrôle des 19 Patterns d'Optimisation</h3>
         <div id="proxy-patterns-grid" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(320px,1fr)); gap:0.75rem;"></div>
       </section>
 
@@ -283,7 +283,7 @@
 
     <!-- Footer -->
     <footer class="footer">
-      <p>AI Token Optimizer v2.0 — Universal Token Optimization Suite for AI Development Agents • 12 IDEs • Guide 2026</p>
+      <p>AI Token Optimizer v3.0 — Universal Token Optimization Suite for AI Development Agents • 12 IDEs • 19 Proxy Patterns • Guide 2026</p>
     </footer>
   </div>
 

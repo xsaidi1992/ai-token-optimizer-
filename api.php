@@ -36,7 +36,7 @@ if (str_starts_with($action, 'proxy_')) {
         if (empty($health)) {
             $health = [
                 'status'             => 'offline',
-                'proxy'              => 'AI Token Optimizer Proxy v2.0',
+                'proxy'              => 'AI Token Optimizer Proxy v3.0',
                 'port'               => $port,
                 'requests_logged'    => count($stats),
                 'tokens_saved_est'   => array_sum(array_column($stats, 'tokens_saved_est')),
