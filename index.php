@@ -242,7 +242,7 @@
       <!-- Proxy KPIs -->
       <section class="kpi-grid" style="margin-bottom:1.5rem;">
         <div class="glass-card" style="background:rgba(16,185,129,0.08); border-color:rgba(16,185,129,0.25);">
-          <div class="kpi-card-header"><span>Économie Moyenne</span></div>
+          <div class="kpi-card-header"><span>Économie Réelle</span></div>
           <div class="kpi-value" style="color:#10b981;" id="proxy-avg-savings">--%</div>
           <div class="kpi-subtext">Sur les requêtes loggées</div>
         </div>
@@ -256,7 +256,7 @@
         </div>
         <div class="glass-card" style="background:rgba(245,158,11,0.08); border-color:rgba(245,158,11,0.25);">
           <div class="kpi-card-header"><span>Patterns Actifs</span></div>
-          <div class="kpi-value" style="color:#f59e0b;" id="proxy-active-patterns">--/12</div>
+          <div class="kpi-value" style="color:#f59e0b;" id="proxy-active-patterns">--/19</div>
         </div>
       </section>
 

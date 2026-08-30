@@ -671,7 +671,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // KPIs
             const h = d.health || {};
-            el('proxy-avg-savings', (h.avg_savings_pct || h.real_savings_pct || 0) + '%');
+            el('proxy-avg-savings', (h.real_savings_pct || h.avg_savings_pct || 0) + '%');
             el('proxy-total-requests', (h.requests_logged || d.stats_count || 0).toLocaleString());
             const bBefore = h.total_bytes_before || 0;
             const bAfter = h.total_bytes_after || 0;
