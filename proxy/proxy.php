@@ -50,7 +50,7 @@ if ($uri === '/health' || $uri === '/') {
         'real_savings_pct'   => $realSavingsPct,
         'total_bytes_before' => $totalBefore,
         'total_bytes_after'  => $totalAfter,
-        'optimizations'      => 12,
+        'optimizations'      => 19,
     ]);
     exit;
 }

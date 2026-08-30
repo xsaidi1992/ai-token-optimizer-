@@ -44,7 +44,7 @@ if (str_starts_with($action, 'proxy_')) {
                 'real_savings_pct'   => $realPct,
                 'total_bytes_before' => $totalBefore,
                 'total_bytes_after'  => $totalAfter,
-                'optimizations'      => 12,
+                'optimizations'      => 19,
             ];
         }
 

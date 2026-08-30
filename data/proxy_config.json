@@ -72,7 +72,46 @@
             "enabled": true,
             "label": "Google systemInstruction Slim",
             "savings": "-10% system"
+        },
+        "exact_match_cache": {
+            "enabled": true,
+            "label": "Exact-Match Response Cache",
+            "ttl_sec": 300,
+            "max_entries": 50,
+            "savings": "-100% on cache hit"
+        },
+        "reasoning_effort_control": {
+            "enabled": true,
+            "label": "Reasoning Effort Downgrade",
+            "tier0_effort": "low",
+            "savings": "-60% thinking tokens"
+        },
+        "stop_sequence_injection": {
+            "enabled": true,
+            "label": "Stop Sequence Injection",
+            "savings": "-20% over-generation"
+        },
+        "deep_schema_strip": {
+            "enabled": true,
+            "label": "Deep JSON Schema Strip",
+            "savings": "-15% schema bloat"
+        },
+        "diff_only_directive": {
+            "enabled": true,
+            "label": "Diff-Only Output Directive",
+            "savings": "-50% code output"
+        },
+        "sliding_window_summary": {
+            "enabled": true,
+            "label": "Sliding Window Summary",
+            "savings": "-45% mid-history"
+        },
+        "request_coalescing": {
+            "enabled": true,
+            "label": "Request Coalescing (Dedup)",
+            "window_sec": 5,
+            "savings": "-100% duplicate calls"
         }
     },
-    "updated_at": "2026-08-29 19:05:47"
+    "updated_at": "2026-08-30 03:30:00"
 }
