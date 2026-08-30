@@ -388,7 +388,7 @@ try {
     } elseif ($action === 'models') {
         echo json_encode(['status' => 'success', 'models' => $scanner->getModelRates()]);
     } else {
-        echo json_encode($data);
+        echo json_encode($data, JSON_INVALID_UTF8_SUBSTITUTE);
     }
 } catch (Throwable $e) {
     http_response_code(500);

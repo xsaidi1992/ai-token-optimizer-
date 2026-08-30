@@ -128,7 +128,9 @@ class AntigravityScanner {
                     'completion_tokens' => $completionTokens,
                     'total_tokens' => $totalEvTokens,
                     'cost' => $cost,
-                    'snippet' => (strlen(strip_tags($content)) > 120) ? substr(strip_tags($content), 0, 117) . '...' : strip_tags($content)
+                    'snippet' => preg_replace('/[\x80-\xFF]/', '',
+                        (strlen(strip_tags($content)) > 120) ? substr(strip_tags($content), 0, 117) . '...' : strip_tags($content)
+                    )
                 ];
 
                 // Aggregate model stats
@@ -431,7 +433,7 @@ class AntigravityScanner {
             ]
         ];
 
-        file_put_contents($this->cacheFile, json_encode($result, JSON_PRETTY_PRINT));
+        file_put_contents($this->cacheFile, json_encode($result, JSON_PRETTY_PRINT | JSON_INVALID_UTF8_SUBSTITUTE));
         return $result;
     }
 
